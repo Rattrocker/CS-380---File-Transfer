@@ -1,9 +1,6 @@
-import java.io.IOException;
 import java.util.HashMap;
 
 public class MIMEBase64 {
-
-	public static Base64Alphabet table = new Base64Alphabet();
 
 	/**
 	 * Base64 encoded version of a chunk
@@ -12,6 +9,7 @@ public class MIMEBase64 {
 	 * @return encoded chunk
 	 */
 	public static byte[] b64Encode(byte[] chunk) {
+		Base64Alphabet table = new Base64Alphabet();
 		String encode = new String(chunk);
 
 		//binary version of String
@@ -88,6 +86,7 @@ public class MIMEBase64 {
 	 * @return Bsae64 encoded binary value
 	 */
 	private static String base64ToBinary(String base64) {
+		Base64Alphabet table = new Base64Alphabet();
 		char[] chars = base64.toCharArray();
 		StringBuilder string = new StringBuilder();
 		for(Character c : chars) {
