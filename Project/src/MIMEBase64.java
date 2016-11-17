@@ -5,37 +5,15 @@ public class MIMEBase64 {
 
 	public static Base64Alphabet table = new Base64Alphabet();
 
-	public static void main(String[] args) throws IOException {
-
-		String test = "A\tB\nX X";
-		System.out.println("String: " + test);
-		System.out.println("Binary: " + stringToBinary(test)+ "\n");
-
-		System.out.println("ENCODING");
-		String testString = b64Encode(test);		
-		System.out.println("Encoded String: " + testString);
-		System.out.println("Binary: " + stringToBinary(testString) + "\n");
-
-		String xorKey = "ASDSFDGSDFGWE#@$@#%#RGFE#4342423fr23";
-		System.out.println("ASCII ARMOR");
-		testString = new String(ASCIIArmor.xorCipher(testString, xorKey));
-		System.out.println("Ciphered String: " + testString);
-		testString = new String(ASCIIArmor.xorCipher(testString, xorKey));
-		System.out.println("DeCiphered String: " + testString + "\n");
-
-		System.out.println("DECODING");
-		testString = b64Decode(testString);
-		System.out.println("Decoded String: " + testString);
-		System.out.println("Binary: " + stringToBinary(testString) + "\n");
-	}
-
 	/**
-	 * Base64 encoded version of String
+	 * Base64 encoded version of a chunk
 	 * 
-	 * @param encoded String to encode
-	 * @return encoded String
+	 * @param chunk chunk to encode
+	 * @return encoded chunk
 	 */
-	public static String b64Encode(String encode) {
+	public static byte[] b64Encode(byte[] chunk) {
+		String encode = new String(chunk);
+
 		//binary version of String
 		String encodeBinary = stringToBinary(encode);
 
@@ -67,16 +45,18 @@ public class MIMEBase64 {
 		for(String i : splitter) {
 			output += table.encode.get(Integer.parseInt(i,2));
 		}
-		return output;
+		return output.getBytes();
 	}
 
 	/**
-	 * Base64 decoded version of String
+	 * Base64 decoded version of chunk
 	 * 
-	 * @param decode String to decode
-	 * @return String
+	 * @param chunk chunk to decode
+	 * @return decoded chunk
 	 */
-	public static String b64Decode(String decode) {
+	public static byte[] b64Decode(byte[] chunk) {
+		String decode = new String(chunk);
+
 		//binary version of String
 		String decodeBinary = base64ToBinary(decode);
 
@@ -98,16 +78,16 @@ public class MIMEBase64 {
 		for(int i = 0; i < toKeep; i++) {
 			output += (char) Integer.parseInt(splitter[i], 2);
 		}
-		return output;
+		return output.getBytes();
 	}
 
 	/**
 	 * Turns a String encoded in Base64 into its binary value based on the Base64 Alphabet
 	 * 
-	 * @param base64 BAse64 encoded String
+	 * @param base64 Base64 encoded String
 	 * @return Bsae64 encoded binary value
 	 */
-	public static String base64ToBinary(String base64) {
+	private static String base64ToBinary(String base64) {
 		char[] chars = base64.toCharArray();
 		StringBuilder string = new StringBuilder();
 		for(Character c : chars) {
@@ -123,12 +103,12 @@ public class MIMEBase64 {
 	}
 
 	/**
-	 * Converts a String of ASCII characters into its binary representation
+	 * Converts a String of ASCII characters into its binary representation with padding
 	 * 
 	 * @param string ASCII encoded String
 	 * @return binary representation
 	 */
-	public static String stringToBinary(String string) {
+	private static String stringToBinary(String string) {
 		byte[] bytes = string.getBytes();
 		StringBuilder binary = new StringBuilder();
 		for (byte b : bytes){
