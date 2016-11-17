@@ -35,7 +35,7 @@ public class Transfer {
             String serverAddress = "";
             int port = 9999;
 
-            boolean firstFile = false;
+            boolean firstFile = true;
 
             // parse arguments
             for (int i = 0; i < argslist.size(); i++) {
@@ -52,6 +52,7 @@ public class Transfer {
                     //not flag
                     if (firstFile) {
                         sourceFilename = arg;
+                        firstFile = false;
                     } else {
                         String[] split = arg.split(":");
                         serverAddress = split[0];
@@ -75,6 +76,5 @@ public class Transfer {
                 e.printStackTrace();
             }
         }
-
     }
 }

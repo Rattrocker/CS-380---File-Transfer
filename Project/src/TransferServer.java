@@ -22,7 +22,7 @@ public class TransferServer {
             BufferedReader socketIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
 
-            //do stuff here
+            //TODO: everything...
         }
     }
 }
