@@ -2,7 +2,7 @@
 /**
  * Written by Zahy Abou-Diab and Zachary Rank on 11/15/2016
  */
-public class ASCIIArmor {
+public class XORCipher {
 
     /**
      * XOR encrypts or decrypts a chunk given a key
