@@ -54,11 +54,17 @@ public class TransferClient {
             // read bytes
             bis.read(buffer, 0, readLength);
 
-            //TODO: hash chunk
+            // generate checksum hash
+            byte[] checksum = Hash.generateCheckSum(buffer);
 
-            //TODO: base64 encode
+            //TODO: read in a key for xor ciphering instead of hard-coding one
+            buffer = XORCipher.xorCipher(buffer, "replace this key".getBytes());
 
-            //TODO: xor cipher
+            //TODO: communicate request for ascii armoring between sender/receiver rahter than hard-coded true
+            boolean asciiArmor = true;
+            if(asciiArmor == true) {
+                buffer = MIMEBase64.b64Encode(buffer);
+            }
 
             //TODO: send packet header to indicate incoming chunk
             //TODO: send chunk number (i)
