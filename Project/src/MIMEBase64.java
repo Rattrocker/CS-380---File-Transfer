@@ -1,7 +1,7 @@
 import java.util.HashMap;
 
 /**
- * Written by Zahy Abou-Diab, Yu-yen La, and Zachary Rank on 11/16/2016
+ * Written by Zahy Abou-Diab, Y-Uyen La, and Zachary Rank on 11/16/2016
  */
 public class MIMEBase64 {
 
