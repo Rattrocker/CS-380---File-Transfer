@@ -63,7 +63,7 @@ public class TransferClient {
             //TODO: communicate request for ascii armoring between sender/receiver rahter than hard-coded true
             boolean asciiArmor = true;
             if(asciiArmor == true) {
-                buffer = MIMEBase64.b64Encode(buffer);
+                buffer = Base64.b64Encode(buffer);
             }
 
             //TODO: send packet header to indicate incoming chunk

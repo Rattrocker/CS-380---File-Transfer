@@ -3,7 +3,7 @@ import java.util.HashMap;
 /**
  * Written by Zahy Abou-Diab, Y-Uyen La, and Zachary Rank on 11/16/2016
  */
-public class MIMEBase64 {
+public class Base64 {
 
     /**
      * Base64 encoded version of a chunk
