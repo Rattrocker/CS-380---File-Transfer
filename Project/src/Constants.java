@@ -6,4 +6,7 @@ public class Constants {
 
     //packet headers
     public static final byte PH_CHUNK_DATA = 0x0;
+
+    //amount of times to repeat check sum generation
+    public static final int CHECK_SUM_REPETITIONS = 3;
 }
