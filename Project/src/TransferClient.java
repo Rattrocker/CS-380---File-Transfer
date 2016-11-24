@@ -15,25 +15,28 @@ public class TransferClient {
 
     public TransferClient(String address, int port) throws IOException {
         this.socket = new Socket(address, port);
-        this.socketIn = new BufferedReader(new InputStreamReader(socket.getInputStream())); //reads what client socket is saying
+        this.socketIn = new BufferedReader(new InputStreamReader(socket.getInputStream())); //reads from server 
         this.socketOut = new DataOutputStream(socket.getOutputStream());
 
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         String fromServer;
         String fromUser;
 
 
 
-        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));            //"stdIn" reads in what the user types.
+        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));            
+        while ((fromServer = socketIn.readLine()) != null) {                    
+            System.out.println("Server: " + fromServer);                        
+            if (fromServer.equals("You've been authenticated! Good bye!"))      
+                break;       
+            fromUser = stdIn.readLine(); 
+            System.out.println("dies here" + fromUser);
 
-        while ((fromServer = socketIn.readLine()) != null) {                    //while the server has something to say
-            System.out.println("Server: " + fromServer);                        //print out what the server says
-            if (fromServer.equals("You've been authenticated! Good bye!"))      //if you have been authenticated, close the connection on client side!
-                break;
-                    
-            fromUser = stdIn.readLine();                                     //read in what the user typed from keyboard
+            //System.out.println("from client: " + fromUser);
+
             if (fromUser != null) {
-                        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);      //"out" prints what the user types.
-                out.println(fromUser);                                          //echos on the screen what user is typing
+                System.out.println("I did indeed make it here");
+                out.println(fromUser);                                        
             }
         }
     }

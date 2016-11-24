@@ -23,32 +23,29 @@ public class TransferServer {
             Socket clientSocket = serverSocket.accept();
             System.out.println("Client connect: " + clientSocket.getInetAddress());
             BufferedReader socketIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
+           // DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
+            PrintWriter out =  new PrintWriter(clientSocket.getOutputStream(), true); //this does print to the client side.
 
-            // authenticate
-            if(!authenticated) {
-            //TODO: everything...                
-            }
-            // else already authenticated
-            else {
-                            PrintWriter out =                           //accept() waits until client starts up and requests connection on the host and port of this server    
-                new PrintWriter(clientSocket.getOutputStream(), true);  //sends info to client socket
 
-                String inputLine;
-                String outputLine;
+            String inputLine;
+            String outputLine;
+        
+
+            // Initiate conversation with client
+            Protocol protocol = new Protocol();
+            outputLine = protocol.processInput(null);                  
+            out.println(outputLine);      
+
+                               
+            while ((inputLine = socketIn.readLine()) != null) { 
+            out.println("i made it to here on the server");
+            out.println("client said: " + inputLine);                                                              
+              outputLine = protocol.processInput(inputLine);          
+              out.println(outputLine);                                
+              if (outputLine.equals("You've been authenticated! Good bye!"))          
+                 authenticated = true;
+                 break;
             
-                // Initiate conversation with client
-                Protocol protocol = new Protocol();
-                outputLine = protocol.processInput(null);                  //it goes into protocol and into processInput() for the first time.
-                out.println(outputLine);                                   //now it prints out "Please enter your username"     
-
-                while ((inputLine = socketIn.readLine()) != null) {               //while the client has something to say
-                  outputLine = protocol.processInput(inputLine);          //sends in what the client said to be checked in the Protocol class
-                  out.println(outputLine);                                //prints out the appropriate response from Protocol class
-                  if (outputLine.equals("You've been authenticated! Good bye!"))          //if you've been authenticated, close the connection on the server side!
-                     authenticated = true;
-                     break;
-                }
             }
         }
     }
