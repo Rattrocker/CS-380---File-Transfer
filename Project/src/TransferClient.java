@@ -26,18 +26,20 @@ public class TransferClient {
 
         BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));            
         while ((fromServer = socketIn.readLine()) != null) {                    
-            System.out.println("Server: " + fromServer);                        
-            if (fromServer.equals("You've been authenticated! Good bye!"))      
-                break;       
-            fromUser = stdIn.readLine(); 
-            System.out.println("dies here" + fromUser);
-
-            //System.out.println("from client: " + fromUser);
-
-            if (fromUser != null) {
-                System.out.println("I did indeed make it here");
-                out.println(fromUser);                                        
+            System.out.println(fromServer);                        
+            if (fromServer.equals("You've been authenticated! Good bye!")){
+            	break; 
             }
+            else {
+            	 fromUser = stdIn.readLine(); 
+
+	            if (fromUser != null) {
+	                out.println(fromUser);                                        
+	            }
+
+            }      
+
+           
         }
     }
 

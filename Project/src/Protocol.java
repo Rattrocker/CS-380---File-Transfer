@@ -39,11 +39,12 @@ public class Protocol {
             }       
         } else if (state == SENTPASSWORD) {                     //this else if block just keeps checking to see if the password is valid
             String enteredPw = theInput;
+            theOutput = theInput + "password woo";
             byte[] byteEnteredPw = enteredPw.getBytes();
             byte[] enteredHashedPw = hash.generateCheckSum(byteEnteredPw);
 
 
-            if (hash.compareCheckSums(hashedPw, enteredHashedPw)) {
+            if (hash.compareHashes(hashedPw, enteredHashedPw)) {
                 theOutput = "You've been authenticated! Good bye!";     //if valid, it sends out this message and then the client and server close the connection
                 state = WAITING;
             } else {

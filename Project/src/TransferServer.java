@@ -38,14 +38,17 @@ public class TransferServer {
 
                                
             while ((inputLine = socketIn.readLine()) != null) { 
-            out.println("i made it to here on the server");
-            out.println("client said: " + inputLine);                                                              
+              out.println("");                                                              
               outputLine = protocol.processInput(inputLine);          
               out.println(outputLine);                                
-              if (outputLine.equals("You've been authenticated! Good bye!"))          
-                 authenticated = true;
+              if (outputLine.equals("You've been authenticated! Good bye!")){
+                authenticated = true;
                  break;
-            
+              }
+              else {
+                inputLine = socketIn.readLine();
+              }          
+              
             }
         }
     }
