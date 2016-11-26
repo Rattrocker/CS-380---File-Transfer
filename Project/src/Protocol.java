@@ -1,5 +1,8 @@
 import java.net.*;
 import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 
 /**
  * Written by Y-Uyen on 11/20/16
@@ -12,40 +15,66 @@ public class Protocol {
 
 
     private int state = WAITING;
+    private boolean found = false;
 
-    private String username = "yuyen";                      //feel free to change the username and pw to whatever when testing!
-    private String password = "wutwut";
+   // private String username = "yuyen";                      
+   // private String password = "wutwut";
 
-    private byte[] bytePw = password.getBytes();            //converted pw to byte array in order to use it with the Hash class written by Zach
+   // private byte[] bytePw = password.getBytes();            
 
-    public Hash hash = new Hash();                          //creates Hash object
-
+    public Hash hash = new Hash();                          
+    public String[] login;
 
     public String processInput(String theInput) {
-        byte[] hashedPw = hash.generateCheckSum(bytePw);       //creates the checksum for the pw that is stored 
+        String checkUser[] = new String[1];     
    
         String theOutput = null;
 
-        if (state == WAITING) {                                 //this is the first message that gets print out from the server to the client.
+        if (state == WAITING) {                                 
             theOutput = "Please enter your username:";
             state = SENTUSERNAME;
-        } else if (state == SENTUSERNAME) {                     //this else if block just keeps checking to see if the username is valid
-            if (theInput.equals("yuyen")) {
+        } else if (state == SENTUSERNAME) {   
+            try {
+                String line;  
+                BufferedReader reader = new BufferedReader(new FileReader("login.txt")); 
+                while ((line = reader.readLine()) != null) {
+                    //split the user and pw just so you can check the username
+                    checkUser = line.split(",");
+                    if(checkUser[0].equals(theInput)) {             //if username matches, store user and pw into a an array of size 2
+                        login = line.split(",");
+                        found = true;
+                        break;
+                    }
+                }
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if(found) {
                 theOutput = "Please enter your password.";
                 state = SENTPASSWORD;
             } else {
                 theOutput = "Invalid username. Please try again!";
                 state = SENTUSERNAME;
             }       
-        } else if (state == SENTPASSWORD) {                     //this else if block just keeps checking to see if the password is valid
+        } else if (state == SENTPASSWORD) {  
+            //create the salt
+            String salt = "sodium";
+            byte[] salted = salt.getBytes();                   
+            
+            //salt and hash pw the user entered
             String enteredPw = theInput;
-            theOutput = theInput + "password woo";
             byte[] byteEnteredPw = enteredPw.getBytes();
-            byte[] enteredHashedPw = hash.generateCheckSum(byteEnteredPw);
+            byte[] enteredHashedPw = hash.generatePasswordHash(salted, byteEnteredPw);
 
+            //get corresponding pw from login.txt and then salt and hash it
+            String password = login[1];                   
+            byte[] bytePw = password.getBytes();
+            byte[] hashedPw = hash.generatePasswordHash(salted, bytePw);
 
             if (hash.compareHashes(hashedPw, enteredHashedPw)) {
-                theOutput = "You've been authenticated! Good bye!";     //if valid, it sends out this message and then the client and server close the connection
+                theOutput = "You've been authenticated! Good bye!";     
                 state = WAITING;
             } else {
                 theOutput = "Invalid password. Please try again!";
