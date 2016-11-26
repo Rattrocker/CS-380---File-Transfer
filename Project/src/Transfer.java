@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * Created by cthill on 10/31/16.
@@ -23,7 +24,7 @@ public class Transfer {
                     port = Integer.parseInt(argslist.get(argslist.indexOf("-p") + 1));
                 }
 
-                TransferServer ts = new TransferServer(port);
+                TransferServer ts = new TransferServer(port, false);
                 System.out.println("Listening on port " + port);
                 ts.serve();
             } catch (IOException e) {
@@ -68,8 +69,25 @@ public class Transfer {
             try {
                 // connect to server
                 TransferClient tc = new TransferClient(serverAddress, port);
+
+                // authenticate
+                Scanner in = new Scanner(System.in);
+                int attempts = 0;
+                while (attempts < Constants.MAX_AUTH_ATTEMPTS) {
+                    System.out.print("username: ");
+                    String user = in.nextLine();
+                    System.out.print("password: ");
+                    String pass = new String(System.console().readPassword());
+                    if (tc.authenticate(user, pass)) {
+                        break;
+                    }
+                    System.out.println("Bad login, try again.");
+                    attempts++;
+                }
+
                 // transfer file
                 tc.transfer(sourceFilename, destFilename);
+
                 // close connection
                 tc.disconnect();
             } catch (IOException e) {
