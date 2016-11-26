@@ -3,9 +3,10 @@ import java.io.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import  java.security.NoSuchAlgorithmException;
 
 /**
- * Written by Y-Uyen on 11/20/16
+ * Protocol and authentication written by Y-Uyen on 11/20/16
  */
 
 public class Protocol {
@@ -15,12 +16,7 @@ public class Protocol {
 
 
     private int state = WAITING;
-    private boolean found = false;
-
-   // private String username = "yuyen";                      
-   // private String password = "wutwut";
-
-   // private byte[] bytePw = password.getBytes();            
+    private boolean found = false;       
 
     public Hash hash = new Hash();                          
     public String[] login;
@@ -59,27 +55,34 @@ public class Protocol {
                 state = SENTUSERNAME;
             }       
         } else if (state == SENTPASSWORD) {  
-            //create the salt
-            String salt = "sodium";
-            byte[] salted = salt.getBytes();                   
-            
-            //salt and hash pw the user entered
-            String enteredPw = theInput;
-            byte[] byteEnteredPw = enteredPw.getBytes();
-            byte[] enteredHashedPw = hash.generatePasswordHash(salted, byteEnteredPw);
+            try {
+                //create the salt
+                String salt = "sodium";
+                byte[] salted = salt.getBytes();                   
+                
+                //salt and hash pw the user entered
+                String enteredPw = theInput;
+                byte[] byteEnteredPw = enteredPw.getBytes();
+                byte[] enteredHashedPw = hash.generatePasswordHash(salted, byteEnteredPw);
 
-            //get corresponding pw from login.txt and then salt and hash it
-            String password = login[1];                   
-            byte[] bytePw = password.getBytes();
-            byte[] hashedPw = hash.generatePasswordHash(salted, bytePw);
+                //get corresponding pw from login.txt and then salt and hash it
+                String password = login[1];                   
+                byte[] bytePw = password.getBytes();
+                byte[] hashedPw = hash.generatePasswordHash(salted, bytePw);
 
-            if (hash.compareHashes(hashedPw, enteredHashedPw)) {
-                theOutput = "You've been authenticated! Good bye!";     
-                state = WAITING;
-            } else {
-                theOutput = "Invalid password. Please try again!";
-                state = SENTPASSWORD;
+                //now check to see if the passwords match
+                if (hash.compareHashes(hashedPw, enteredHashedPw)) {
+                    theOutput = "You've been authenticated! Good bye!";     
+                    state = WAITING;
+                } else {
+                    theOutput = "Invalid password. Please try again!";
+                    state = SENTPASSWORD;
+                }
             }
+            catch (NoSuchAlgorithmException e) {
+
+            }
+            
         }
         return theOutput;
     }

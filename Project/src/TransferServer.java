@@ -23,8 +23,8 @@ public class TransferServer {
             Socket clientSocket = serverSocket.accept();
             System.out.println("Client connect: " + clientSocket.getInetAddress());
             BufferedReader socketIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-           // DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
-            PrintWriter out =  new PrintWriter(clientSocket.getOutputStream(), true); //this does print to the client side.
+            DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
+            PrintWriter out =  new PrintWriter(clientSocket.getOutputStream(), true); //this allows us to print to the client side
 
 
             String inputLine;
@@ -36,20 +36,15 @@ public class TransferServer {
             outputLine = protocol.processInput(null);                  
             out.println(outputLine);      
 
-                               
+            //read in user input and sends it to protocol to process the text & print out the corresonding message        
             while ((inputLine = socketIn.readLine()) != null) { 
-              out.println("");                                                              
-              outputLine = protocol.processInput(inputLine);          
-              out.println(outputLine);                                
-              if (outputLine.equals("You've been authenticated! Good bye!")){
-                authenticated = true;
-                 break;
-              }
-              else {
-                inputLine = socketIn.readLine();
-              }          
-              
+             outputLine = protocol.processInput(inputLine);          
+                out.println(outputLine);                                
+                if (outputLine.equals("You've been authenticated! Good bye!"))          
+                    break;
             }
+              
+            
         }
     }
 
