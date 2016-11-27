@@ -19,10 +19,12 @@ public class ServerProtocol {
     protected boolean receiving = false;
     protected boolean xor;
     protected boolean asciiArmor;
+    protected boolean dropRandomPackets;
     FileOutputStream fileOut;
     long fileSize;
     int numChunks;
     int chunkNum;
+    int packetsToDrop;
 
     public ServerProtocol(DataInputStream in, DataOutputStream out, String loginFilename) {
         socketIn = in;
@@ -130,6 +132,8 @@ public class ServerProtocol {
         numChunks = socketIn.readInt();
         xor = socketIn.readBoolean();
         asciiArmor = socketIn.readBoolean();
+//        dropRandomPackets = socketIn.readBoolean();
+//        packetsToDrop = socketIn.readInt();
 
         // create file
         fileOut = new FileOutputStream(destFilename);
@@ -165,6 +169,7 @@ public class ServerProtocol {
         int checksumLen = socketIn.readInt();
         byte[] checksumData = new byte[checksumLen];
         socketIn.read(checksumData);
+        
 
         // check chunk number
         if (thisChunkNum != chunkNum) {
@@ -176,6 +181,14 @@ public class ServerProtocol {
             chunkData = XORCipher.xorCipher(chunkData, "replace this key".getBytes());
         }
 
+        // "drop" a random packet
+//        if(dropRandomPackets && packetsToDrop >= 0) {
+//            chunkData[0] = (byte) (chunkData[0] * -1);
+//            checksumData = Hash.generateCheckSum(chunkData);
+//            packetsToDrop--;
+//            System.out.println("test1");
+//        }
+        
         // verify checksum
         byte[] chunkVerify = Hash.generateCheckSum(chunkData);
         if (chunkVerify.length != checksumData.length) {

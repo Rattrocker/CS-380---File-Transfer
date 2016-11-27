@@ -1,9 +1,5 @@
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Scanner;
 
 /**
  * Created by cthill on 11/16/16.
@@ -41,6 +37,8 @@ public class TransferClient {
         socketOut.writeInt(chunks);
         socketOut.writeBoolean(xor);
         socketOut.writeBoolean(asciiArmor);
+//        socketOut.writeBoolean(dropRandomPackets);
+//        socketOut.writeInt(packetsToDrop);
 
         // read each chunk
         for (int i = 0; i < chunks; i++) {
