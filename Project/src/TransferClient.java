@@ -37,7 +37,7 @@ public class TransferClient {
 
         //TODO: parse command line switches for xor and asciiArmor
         boolean xor = true;
-        boolean asciiArmor = false;
+        boolean asciiArmor = true;
 
         // send filename, file size, chunk size, encoding, etc.
         socketOut.writeUTF(destFilename);
@@ -67,19 +67,22 @@ public class TransferClient {
                 buffer = XORCipher.xorCipher(buffer, "replace this key".getBytes());
             }
 
-            if(asciiArmor == true) {
-                buffer = Base64.b64Encode(buffer);
-            }
-
             int attempts = 0;
             while (true) {
                 // send packet header to indicate incoming chunk
                 socketOut.writeByte(Constants.PH_CHUNK_DATA);
+
                 // send chunk number (i)
                 socketOut.writeInt(i);
+
                 // write bytes to socket
-                socketOut.writeInt(buffer.length);
-                socketOut.write(buffer);
+                if (asciiArmor) {
+                    socketOut.writeUTF(Base64.b64Encode(buffer));
+                } else {
+                    socketOut.writeInt(buffer.length);
+                    socketOut.write(buffer);
+                }
+
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
                 socketOut.write(checksum);

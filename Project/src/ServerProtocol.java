@@ -150,10 +150,17 @@ public class ServerProtocol {
 
         // read chunk num
         int thisChunkNum = socketIn.readInt();
+
         // read chunk data
-        int chunkLen = socketIn.readInt();
-        byte[] chunkData = new byte[chunkLen];
-        socketIn.read(chunkData);
+        byte[] chunkData;
+        if (asciiArmor) {
+            chunkData = Base64.b64Decode(socketIn.readUTF());
+        } else {
+            int chunkLen = socketIn.readInt();
+            chunkData = new byte[chunkLen];
+            socketIn.read(chunkData);
+        }
+
         // read checksum data
         int checksumLen = socketIn.readInt();
         byte[] checksumData = new byte[checksumLen];
@@ -164,11 +171,7 @@ public class ServerProtocol {
             throw new ProtocolException("Expecting chunkNum: " + chunkNum + ", got: " + thisChunkNum);
         }
 
-        // base64 decode chunk
-        if (asciiArmor) {
-            chunkData = Base64.b64Decode(chunkData);
-        }
-
+        // decrypt chunk
         if (xor) {
             chunkData = XORCipher.xorCipher(chunkData, "replace this key".getBytes());
         }
