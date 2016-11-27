@@ -19,7 +19,7 @@ public class TransferClient {
         this.socketOut = new DataOutputStream(socket.getOutputStream());
     }
 
-    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor, boolean dropRandomPackets, int packetsToDrop) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -71,20 +71,19 @@ public class TransferClient {
                 // send chunk number (i)
                 socketOut.writeInt(i);
 
-                // write bytes to socket
-                if (asciiArmor) {
-                    socketOut.writeUTF(Base64.b64Encode(buffer));
-                } else {
-                    socketOut.writeInt(buffer.length);
-                    socketOut.write(buffer);
-                }
+                    if (asciiArmor) {
+                        socketOut.writeUTF(Base64.b64Encode(buffer));
+                    } else {
+                        socketOut.writeInt(buffer.length);
+                        socketOut.write(buffer);
+                    }
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
                 socketOut.write(checksum);
                 attempts++;
 
-                // check if chunk was reveived okay
+                // check if chunk was received okay
                 byte incoming = socketIn.readByte();
                 if (incoming == Constants.PH_CHUNK_OK) {
                     break;

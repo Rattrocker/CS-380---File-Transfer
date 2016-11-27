@@ -39,6 +39,7 @@ public class Transfer {
             int port = 9999;
             boolean asciiArmor = false;
             boolean dropRandomPackets = false;
+            int packetsToDrop = 0;
             boolean xor = true;
 
             boolean firstFile = true;
@@ -59,8 +60,9 @@ public class Transfer {
                     // force drop packet flag
                     else if(arg.equals("-d")) {
                         dropRandomPackets = true;
+                        packetsToDrop = Integer.parseInt(argslist.get(++i));
                     }
-                    // turn off xor flag
+                    // do not xor flag
                     else if(arg.equals("-x")) {
                         xor = false;
                     }
@@ -102,7 +104,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, asciiArmor, xor);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, xor, dropRandomPackets, packetsToDrop);
 
                 // close connection
                 tc.disconnect();

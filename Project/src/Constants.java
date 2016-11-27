@@ -3,8 +3,8 @@
  */
 public class Constants {
     public static final int CHUNK_SIZE = 4096;
-    // amount of times to repeat check sum generation
-    public static final int CHECK_SUM_REPETITIONS = 3;
+    // amount of times to repeat check sum generation; higher numbers create shorter hashes
+    public static final int CHECK_SUM_REPETITIONS = 30;
     // maximum number of auth attempts
     public static final int MAX_AUTH_ATTEMPTS = 3;
 
