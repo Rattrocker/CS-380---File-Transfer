@@ -15,28 +15,8 @@ public class TransferClient {
 
     public TransferClient(String address, int port) throws IOException {
         this.socket = new Socket(address, port);
-        this.socketIn = new DataInputStream(socket.getInputStream()); //reads from server
+        this.socketIn = new DataInputStream(socket.getInputStream());
         this.socketOut = new DataOutputStream(socket.getOutputStream());
-
-//        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-//        String fromServer;
-//        String fromUser;
-//
-//        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-//        while ((fromServer = socketIn.readLine()) != null) {
-//            System.out.println(fromServer);
-//            if (fromServer.equals("You've been authenticated! Good bye!")){
-//            	break;
-//            }
-//            else {
-//            	 fromUser = stdIn.readLine();
-//
-//	            if (fromUser != null) {
-//	                out.println(fromUser);
-//	            }
-//
-//            }
-//        }
     }
 
     public void transfer(String sourceFilename, String destFilename) throws FileNotFoundException, IOException {
