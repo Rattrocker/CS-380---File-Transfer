@@ -12,27 +12,11 @@ public class XORCipher {
      * @return encrypted/decrypted chunk
      */
     public static byte[] xorCipher(byte[] chunk, byte[] key) {
-        String stringChunk = new String(chunk);
-        String stringKey = new String(key);
-
-        //pads key with itself to accomodate chunk length
-        String keyTemp = stringKey;
-        while(keyTemp.length() < stringChunk.length()) {
-            keyTemp += key;
+        for (int i = 0; i < chunk.length; i++) {
+            chunk[i] ^= key[i % key.length];
         }
 
-        //chunk and key as byte Arrays
-        byte[] chunkBytes = stringChunk.getBytes();
-        byte[] keyBytes = keyTemp.getBytes();
-
-        //XOR encypted/decrypted chunk
-        byte[] encryptedBytes = new byte[chunkBytes.length];
-
-        //encrypt/decrypt
-        for(int i = 0; i < chunkBytes.length; i++) {
-            encryptedBytes[i] = (byte) (chunkBytes[i] ^ keyBytes[i]);
-        }
-        return encryptedBytes;
+        return chunk;
     }
 
 }
