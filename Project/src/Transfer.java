@@ -12,7 +12,8 @@ public class Transfer {
         List<String> argslist = Arrays.asList(args);
 
         if (argslist.size() < 1) {
-            System.out.println("Usage: ...");
+            System.out.println("Usage:");
+            System.out.println("\ttransfer [-s server] [-p port] [sourcefile host:destfile]");
             System.exit(1);
         }
 
