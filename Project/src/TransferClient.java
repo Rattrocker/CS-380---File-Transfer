@@ -19,7 +19,7 @@ public class TransferClient {
         this.socketOut = new DataOutputStream(socket.getOutputStream());
     }
 
-    public void transfer(String sourceFilename, String destFilename) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -34,10 +34,6 @@ public class TransferClient {
 
         // send packet header to indicate initiation of file transfer
         socketOut.writeByte(Constants.PH_START_TRANSMIT);
-
-        //TODO: parse command line switches for xor and asciiArmor
-        boolean xor = true;
-        boolean asciiArmor = true;
 
         // send filename, file size, chunk size, encoding, etc.
         socketOut.writeUTF(destFilename);

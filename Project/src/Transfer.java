@@ -13,7 +13,7 @@ public class Transfer {
 
         if (argslist.size() < 1) {
             System.out.println("Usage:");
-            System.out.println("\ttransfer [-s server] [-p port] [-a ascii armor] [-d drop random packets] [sourcefile host:destfile]");
+            System.out.println("\ttransfer [-s server] [-p port] [-x do not xor] [-a ascii armor] [-d drop random packets] [sourcefile host:destfile]");
             System.exit(1);
         }
 
@@ -37,8 +37,9 @@ public class Transfer {
             String destFilename = "";
             String serverAddress = "";
             int port = 9999;
-            boolean asciiArmorRequested = false;
+            boolean asciiArmor = false;
             boolean dropRandomPackets = false;
+            boolean xor = true;
 
             boolean firstFile = true;
 
@@ -47,16 +48,23 @@ public class Transfer {
                 String arg = argslist.get(i);
 
                 if (arg.startsWith("-")) {
-                    //port flag
+                    // port flag
                     if (arg.equals("-p")) {
                         port = Integer.parseInt(argslist.get(++i));
-                    } else if(arg.equals("-a")) {
-                        asciiArmorRequested = true;
-                    } else if(arg.equals("-d")) {
+                    } 
+                    // ascii armor flag
+                    else if(arg.equals("-a")) {
+                        asciiArmor = true;
+                    } 
+                    // force drop packet flag
+                    else if(arg.equals("-d")) {
                         dropRandomPackets = true;
                     }
+                    // turn off xor flag
+                    else if(arg.equals("-x")) {
+                        xor = false;
+                    }
 
-                    //todo: implement flags for base64, encryption, etc
                 } else {
                     //not flag
                     if (firstFile) {
@@ -94,7 +102,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, xor);
 
                 // close connection
                 tc.disconnect();
