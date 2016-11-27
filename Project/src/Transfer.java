@@ -13,7 +13,7 @@ public class Transfer {
 
         if (argslist.size() < 1) {
             System.out.println("Usage:");
-            System.out.println("\ttransfer [-s server] [-p port] [sourcefile host:destfile]");
+            System.out.println("\ttransfer [-s server] [-p port] [-a ascii armor] [-d drop random packets] [sourcefile host:destfile]");
             System.exit(1);
         }
 
@@ -37,6 +37,8 @@ public class Transfer {
             String destFilename = "";
             String serverAddress = "";
             int port = 9999;
+            boolean asciiArmorRequested = false;
+            boolean dropRandomPackets = false;
 
             boolean firstFile = true;
 
@@ -48,6 +50,10 @@ public class Transfer {
                     //port flag
                     if (arg.equals("-p")) {
                         port = Integer.parseInt(argslist.get(++i));
+                    } else if(arg.equals("-a")) {
+                        asciiArmorRequested = true;
+                    } else if(arg.equals("-d")) {
+                        dropRandomPackets = true;
                     }
 
                     //todo: implement flags for base64, encryption, etc
