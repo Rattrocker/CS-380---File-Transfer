@@ -55,10 +55,16 @@ public class TransferClient {
         // send packet header to indicate initiation of file transfer
         socketOut.writeByte(Constants.PH_START_TRANSMIT);
 
-        // send filename, file size, chunk size, etc.
+        //TODO: parse command line switches for xor and asciiArmor
+        boolean xor = true;
+        boolean asciiArmor = false;
+
+        // send filename, file size, chunk size, encoding, etc.
         socketOut.writeUTF(destFilename);
         socketOut.writeLong(size);
         socketOut.writeInt(chunks);
+        socketOut.writeBoolean(xor);
+        socketOut.writeBoolean(asciiArmor);
 
         // read each chunk
         for (int i = 0; i < chunks; i++) {
@@ -70,30 +76,52 @@ public class TransferClient {
 
             // allocate buffer for this chunk
             byte[] buffer = new byte[readLength];
-
             // copy bytes from file into buffer
-            //fileIn.read(buffer, 0, readLength);
             fileIn.read(buffer);
 
             // generate checksum hash
-            //byte[] checksum = Hash.generateCheckSum(buffer);
+            byte[] checksum = Hash.generateCheckSum(buffer);
 
-            //TODO: read in a key for xor ciphering instead of hard-coding one
-            //buffer = XORCipher.xorCipher(buffer, "replace this key".getBytes());
+            if (xor) {
+                //TODO: read in a key for xor ciphering instead of hard-coding one
+                buffer = XORCipher.xorCipher(buffer, "replace this key".getBytes());
+            }
 
-            //TODO: communicate request for ascii armoring between sender/receiver rahter than hard-coded true
-            boolean asciiArmor = false;
             if(asciiArmor == true) {
                 buffer = Base64.b64Encode(buffer);
             }
 
-            // send packet header to indicate incoming chunk
-            socketOut.writeByte(Constants.PH_CHUNK_DATA);
-            // send chunk number (i)
-            socketOut.writeInt(i);
-            // write bytes to socket
-            socketOut.writeInt(buffer.length);
-            socketOut.write(buffer);
+            int attempts = 0;
+            while (true) {
+                // send packet header to indicate incoming chunk
+                socketOut.writeByte(Constants.PH_CHUNK_DATA);
+                // send chunk number (i)
+                socketOut.writeInt(i);
+                // write bytes to socket
+                socketOut.writeInt(buffer.length);
+                socketOut.write(buffer);
+                // write checksum to socket
+                socketOut.writeInt(checksum.length);
+                socketOut.write(checksum);
+                attempts++;
+
+                // check if chunk was reveived okay
+                byte incoming = socketIn.readByte();
+                if (incoming == Constants.PH_CHUNK_OK) {
+                    break;
+                } else if (incoming == Constants.PH_PROTO_ERROR) {
+                    // print protocol error message
+                    System.out.println(socketIn.readUTF());
+                    disconnect();
+                    return;
+                }
+
+                if (attempts >= Constants.CHECK_SUM_REPETITIONS) {
+                    System.out.println("Error: exceeded max chunk retries");
+                    disconnect();
+                    return;
+                }
+            }
         }
     }
 
@@ -120,6 +148,9 @@ public class TransferClient {
     }
 
     public void disconnect() throws IOException {
+        socketOut.writeByte(Constants.PH_DISCONNECT);
+        socketIn.close();
+        socketOut.close();
         socket.close();
     }
 }

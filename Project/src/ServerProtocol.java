@@ -1,5 +1,6 @@
 import java.io.*;
 import java.io.IOException;
+import java.net.ProtocolException;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -16,6 +17,8 @@ public class ServerProtocol {
     // vars for client state
     protected boolean authenticated = false;
     protected boolean receiving = false;
+    protected boolean xor;
+    protected boolean asciiArmor;
     FileOutputStream fileOut;
     long fileSize;
     int numChunks;
@@ -56,28 +59,40 @@ public class ServerProtocol {
     public void run() throws IOException {
         boolean done = false;
         while (!done) {
+            try {
+                // read packet header and run appropriate handler
+                byte incoming = socketIn.readByte();
+                switch (incoming) {
 
-            // read packet header and run appropriate handler
-            byte incoming = socketIn.readByte();
-            switch (incoming) {
+                    case Constants.PH_AUTH:
+                        handleAuth();
+                        break;
 
-                case Constants.PH_AUTH:
-                    handleAuth();
-                    break;
+                    case Constants.PH_START_TRANSMIT:
+                        handleStartTransmit();
+                        break;
 
-                case Constants.PH_START_TRANSMIT:
-                    handleStartTransmit();
-                    break;
+                    case Constants.PH_CHUNK_DATA:
+                        handleFileChunk();
+                        break;
 
-                case Constants.PH_CHUNK_DATA:
-                    handleFileChunk();
-                    break;
-
-                case Constants.PH_DISCONNECT:
-                    socketIn.close();
-                    socketOut.close();
-                    done = true;
-                    break;
+                    case Constants.PH_DISCONNECT:
+                        socketIn.close();
+                        socketOut.close();
+                        done = true;
+                        break;
+                }
+            } catch (ProtocolException e) {
+                // get error message
+                String message = "Protocol error: " + e.getMessage();
+                System.out.println(message);
+                // write protocol error packet
+                socketOut.writeByte(Constants.PH_PROTO_ERROR);
+                socketOut.writeUTF(message);
+                // disconnect
+                socketIn.close();
+                socketOut.close();
+                done = true;
             }
         }
     }
@@ -104,45 +119,82 @@ public class ServerProtocol {
         socketOut.writeByte(goodLogin ? 1 : 0);
     }
 
-    public void handleStartTransmit() throws IOException {
+    public void handleStartTransmit() throws IOException, ProtocolException {
         if (receiving) {
-            // TODO: throw an exception and display an error
-            return;
+            throw new ProtocolException("Received double start_transmit");
         }
 
         // read file metadata
         String destFilename = socketIn.readUTF();
         fileSize = socketIn.readLong();
         numChunks = socketIn.readInt();
+        xor = socketIn.readBoolean();
+        asciiArmor = socketIn.readBoolean();
 
         // create file
         fileOut = new FileOutputStream(destFilename);
 
         // update state
         receiving = true;
+        System.out.println("receiving file: " + destFilename);
     }
 
-    public void handleFileChunk() throws IOException {
+    public void handleFileChunk() throws IOException, ProtocolException {
         if (!receiving) {
-            // TODO: throw an exception and display an error
-            return;
+            throw new ProtocolException("Received unexpected chunk data");
         }
 
         if (chunkNum >= numChunks) {
-            // TODO: throw an exception and display an error
-            return;
+            throw new ProtocolException("Received chunkNum exceeding numChunks");
         }
 
-        // read incoming data
-        int chunkNum = socketIn.readInt();
+        // read chunk num
+        int thisChunkNum = socketIn.readInt();
+        // read chunk data
         int chunkLen = socketIn.readInt();
         byte[] chunkData = new byte[chunkLen];
         socketIn.read(chunkData);
+        // read checksum data
+        int checksumLen = socketIn.readInt();
+        byte[] checksumData = new byte[checksumLen];
+        socketIn.read(checksumData);
+
+        // check chunk number
+        if (thisChunkNum != chunkNum) {
+            throw new ProtocolException("Expecting chunkNum: " + chunkNum + ", got: " + thisChunkNum);
+        }
+
+        // base64 decode chunk
+        if (asciiArmor) {
+            chunkData = Base64.b64Decode(chunkData);
+        }
+
+        if (xor) {
+            chunkData = XORCipher.xorCipher(chunkData, "replace this key".getBytes());
+        }
+
+        // verify checksum
+        byte[] chunkVerify = Hash.generateCheckSum(chunkData);
+        if (chunkVerify.length != checksumData.length) {
+            socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+            return;
+        }
+        for (int i = 0; i < checksumData.length; i++) {
+            if (chunkVerify[i] != checksumData[i]) {
+                socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+                return;
+            }
+        }
 
         // write to file
         fileOut.write(chunkData);
+        // update state
+        chunkNum++;
+        // indicate good chunk
+        socketOut.writeByte(Constants.PH_CHUNK_OK);
 
-        if (chunkNum == numChunks - 1) {
+        // check if we are done
+        if (chunkNum == numChunks) {
             fileOut.close();
             receiving = false;
         }

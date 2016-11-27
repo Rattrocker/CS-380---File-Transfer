@@ -30,6 +30,7 @@ public class TransferServer {
             // TODO: replace literal "login.txt" with command line parameter
             ServerProtocol protocol = new ServerProtocol(socketIn, socketOut, "login.txt");
             protocol.run();
+            System.out.println("Client disconnect: " + clientSocket.getInetAddress());
         }
     }
 
