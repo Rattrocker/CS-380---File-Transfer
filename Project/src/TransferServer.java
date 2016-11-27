@@ -1,7 +1,5 @@
-import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.*;
@@ -11,42 +9,28 @@ import java.io.*;
  */
 public class TransferServer {
     protected ServerSocket serverSocket;
-    private boolean authenticated;
+    protected boolean allowAnon;
+    protected boolean authenticated;
 
-    public TransferServer(int port) throws IOException {
+    public TransferServer(int port, boolean allowAnon) throws IOException {
         this.serverSocket = new ServerSocket(port);
-        authenticated = false;
+        this.allowAnon = allowAnon;
+        this.authenticated = false;
     }
 
     public void serve() throws IOException {
+        // server only accepts one client at a time
+        // TODO: implement threading
         while (true) {
-            Socket clientSocket = serverSocket.accept();
+            Socket clientSocket = serverSocket.accept(); // blocks until a client connects
             System.out.println("Client connect: " + clientSocket.getInetAddress());
-            BufferedReader socketIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            DataInputStream socketIn = new DataInputStream(clientSocket.getInputStream());
             DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
-            PrintWriter out =  new PrintWriter(clientSocket.getOutputStream(), true); //this allows us to print to the client side
 
-
-            String inputLine;
-            String outputLine;
-        
-
-            // Initiate conversation with client
-            Protocol protocol = new Protocol();
-            outputLine = protocol.processInput(null);                  
-            out.println(outputLine);      
-
-            //read in user input and sends it to protocol to process the text & print out the corresonding message        
-            while ((inputLine = socketIn.readLine()) != null) { 
-             outputLine = protocol.processInput(inputLine);          
-                out.println(outputLine);                                
-                if (outputLine.equals("You've been authenticated! Good bye!"))          
-                    break;
-            }
-              
-            
+            // TODO: replace literal "login.txt" with command line parameter
+            ServerProtocol protocol = new ServerProtocol(socketIn, socketOut, "login.txt");
+            protocol.run(); // blocks until client disconnects
+            System.out.println("Client disconnect: " + clientSocket.getInetAddress());
         }
     }
-
-
 }

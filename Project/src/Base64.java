@@ -4,143 +4,160 @@ import java.util.HashMap;
  * Written by Zahy Abou-Diab, Y-Uyen La, and Zachary Rank on 11/16/2016
  */
 public class Base64 {
+    protected static Base64Alphabet table = new Base64Alphabet();
 
     /**
      * Base64 encoded version of a chunk
      * 
      * @param chunk chunk to encode
-     * @return encoded chunk
+     * @return encoded string
      */
-    public static byte[] b64Encode(byte[] chunk) {
-        Base64Alphabet table = new Base64Alphabet();
-        String encode = new String(chunk);
+    public static String b64Encode(byte[] chunk) {
+        // use string builder for performance
+        StringBuilder out = new StringBuilder();
 
-        //binary version of String
-        String encodeBinary = stringToBinary(encode);
+        // encode 3 bytes at a time. Do all but last group
+        for (int i = 0; i < chunk.length - chunk.length % 3; i+=3) {
+            // encode the 3 bytes as 4 base64 characters
+            byte b1 = chunk[i];
+            byte b2 = chunk[i + 1];
+            byte b3 = chunk[i + 2];
 
-        //generate amount of characters to skip for padding
-        int toSkip  = (encode.toCharArray().length * 8)/6;
-        if((encode.toCharArray().length * 8) % 6 != 0) toSkip++;
+            // take upper 6 bits of b1
+            int c1 = (b1 & 0b11111100) >> 2;
+            // take lower 2 bits of b1 and upper 4 bits of b2
+            int c2 = ((b1 & 0b00000011) << 4) | ((b2 & 0b11110000) >> 4);
+            // take lower 4 bits of b2 and upper 2 bits of b3
+            int c3 = ((b2 & 0b00001111) << 2) | ((b3 & 0b11000000) >> 6);
+            // take lower 6 bits of b3
+            int c4 = b3 & 0b00111111;
 
-        //turns String into 6-bit chunks separated by a space
-        StringBuilder tester = new StringBuilder();
-        for(int i = 0; i < encodeBinary.length(); i ++){
-            tester.append(encodeBinary.charAt(i));
-            if((i+1)%6 == 0){
-                tester.append(" "); 
-            }
+            // lookup and append the characters
+            out.append(table.encode.get(c1));
+            out.append(table.encode.get(c2));
+            out.append(table.encode.get(c3));
+            out.append(table.encode.get(c4));
         }
 
-        //separate 6-bit chunks
-        String[] splitter = tester.toString().split(" ");
+        // handle last group
+        int lastGroupLen = chunk.length % 3;
+        if (lastGroupLen == 1) {
+            // read last byte
+            byte b = chunk[chunk.length - 1];
+            // take upper 6 bits of last byte
+            int c1 = (b & 0b11111100) >> 2;
+            // take lower 2 bits of last byte
+            int c2 = (b & 0b00000011) << 4;
 
-        //convert padding into "=" characters
-        for(int i = toSkip; i < splitter.length; i++){
-            if(splitter[i].equals("000000")){
-                splitter[i] = "1000000";
-            }
+            // lookup and append the characters
+            out.append(table.encode.get(c1));
+            out.append(table.encode.get(c2));
+            out.append("==");
+        } else if (lastGroupLen == 2) {
+            // read last two bytes
+            byte b1 = chunk[chunk.length - 2];
+            byte b2 = chunk[chunk.length - 1];
+
+            // take upper 6 bits of b1
+            int c1 = (b1 & 0b11111100) >> 2;
+            // take lower 2 bits of b1 and upper 4 bits of b2
+            int c2 = ((b1 & 0b00000011) << 4) | ((b2 & 0b11110000) >> 4);
+            // take lower 4 bits of b2
+            int c3 = ((b2 & 0b00001111) << 2);
+
+            // lookup and append the characters
+            out.append(table.encode.get(c1));
+            out.append(table.encode.get(c2));
+            out.append(table.encode.get(c3));
+            out.append("=");
         }
 
-        //build String
-        String output = "";
-        for(String i : splitter) {
-            output += table.encode.get(Integer.parseInt(i,2));
-        }
-        return output.getBytes();
+        return out.toString();
     }
 
     /**
      * Base64 decoded version of chunk
      * 
-     * @param chunk chunk to decode
+     * @param base64 string to decode
      * @return decoded chunk
      */
-    public static byte[] b64Decode(byte[] chunk) {
-        String decode = new String(chunk);
-
-        //binary version of String
-        String decodeBinary = base64ToBinary(decode);
-
-        //generate amount of characters to keep to discard padding
-        int toKeep = decodeBinary.length() / 8;
-
-        //turns String into 8-bit chunks separated by a space
-        StringBuilder tester = new StringBuilder();
-        for(int i = 0; i < decodeBinary.length(); i ++){
-            tester.append(decodeBinary.charAt(i));			
-            if((i + 1) % 8 == 0) tester.append(" ");
+    public static byte[] b64Decode(String base64) {
+        // calculate padding bytes
+        int paddingBytes = 0;
+        if (base64.endsWith("==")) {
+            paddingBytes = 2;
+        } else if (base64.endsWith("=")) {
+            paddingBytes = 1;
         }
 
-        //separate 8-bit chunks
-        String[] splitter = tester.toString().split(" ");
+        // allocate array
+        byte[] out = new byte[(base64.length() / 4) * 3 - paddingBytes];
 
-        //build String
-        String output = "";
-        for(int i = 0; i < toKeep; i++) {
-            output += (char) Integer.parseInt(splitter[i], 2);
-        }
-        return output.getBytes();
-    }
-
-    /**
-     * Turns a String encoded in Base64 into its binary value based on the Base64 Alphabet
-     * 
-     * @param base64 Base64 encoded String
-     * @return Bsae64 encoded binary value
-     */
-    private static String base64ToBinary(String base64) {
-        Base64Alphabet table = new Base64Alphabet();
-        char[] chars = base64.toCharArray();
-        StringBuilder string = new StringBuilder();
-        for(Character c : chars) {
-            if(!c.equals('=')) {
-                int val = table.decode.get(c);
-                for (int i = 0; i < 6; i++){
-                    string.append((val & 32) == 0 ? 0 : 1);
-                    val <<= 1;
-                }
-            }
-        }
-        return string.toString();
-    }
-
-    /**
-     * Converts a String of ASCII characters into its binary representation with padding
-     * 
-     * @param string ASCII encoded String
-     * @return binary representation
-     */
-    private static String stringToBinary(String string) {
-        byte[] bytes = string.getBytes();
-        StringBuilder binary = new StringBuilder();
-        for (byte b : bytes){
-            int val = b;
-            for (int i = 0; i < 8; i++){
-                binary.append((val & 128) == 0 ? 0 : 1);
-                val <<= 1;
-            }
+        // setup variables
+        int writeAt = 0;
+        int dataSize = base64.length();
+        if (paddingBytes > 0) {
+            dataSize -= 4;
         }
 
-        //padding
-        if(binary.toString().length() % 6 == 2) {
-            binary.append("0000000000000000");
-        }
-        else if(binary.toString().length() % 6 == 4) {
-            binary.append("00000000");
+        // decode 4 characters at a time (3 bytes)
+        for (int i = 0; i < dataSize; i += 4) {
+            int c1 = table.decode.get(base64.charAt(i));
+            int c2 = table.decode.get(base64.charAt(i + 1));
+            int c3 = table.decode.get(base64.charAt(i + 2));
+            int c4 = table.decode.get(base64.charAt(i + 3));
+
+            // build b1 using c1 and two bits from c2
+            byte b1 = (byte) (((c1 & 0b00111111) << 2) | ((c2 & 0b00110000) >> 4));
+            // build b2 using lower 4 bits from c2 and 4 bits from c3
+            byte b2 = (byte) (((c2 & 0b00001111) << 4) | ((c3 & 0b00111100) >> 2));
+            // build b3 using lower 2 bits from c3 and 6 bits from c4
+            byte b3 = (byte) (((c3 & 0b00000011) << 6) | ((c4 & 0b00111111)));
+
+            // write to output buffer
+            out[writeAt++] = b1;
+            out[writeAt++] = b2;
+            out[writeAt++] = b3;
         }
 
-        return binary.toString();
+        // handle last group
+        if (paddingBytes == 1) {
+            int len = base64.length();
+            int c1 = table.decode.get(base64.charAt(len - 4));
+            int c2 = table.decode.get(base64.charAt(len - 3));
+            int c3 = table.decode.get(base64.charAt(len - 2));
+
+            // build b1 using c1 and two bits from c2
+            byte b1 = (byte) (((c1 & 0b00111111) << 2) | ((c2 & 0b00110000) >> 4));
+            // build b2 using lower 4 bits from c2 and 4 bits from c3
+            byte b2 = (byte) (((c2 & 0b00001111) << 4) | ((c3 & 0b00111100) >> 2));
+
+            // write to output buffer
+            out[writeAt++] = b1;
+            out[writeAt++] = b2;
+        } else if (paddingBytes == 2) {
+            int len = base64.length();
+            int c1 = table.decode.get(base64.charAt(len - 4));
+            int c2 = table.decode.get(base64.charAt(len - 3));
+
+            // build b1 using c1 and two bits from c2
+            byte b1 = (byte) (((c1 & 0b00111111) << 2) | ((c2 & 0b00110000) >> 4));
+
+            // write to output buffer
+            out[writeAt++] = b1;
+        }
+
+        return out;
     }
 }
 
 class Base64Alphabet {
-
-    HashMap<Integer, Character> encode;
-    HashMap<Character, Integer> decode;
+    public HashMap<Integer, Character> encode;
+    public HashMap<Character, Integer> decode;
 
     public Base64Alphabet() {
-        encode = new HashMap<Integer, Character>();
-        decode = new HashMap<Character, Integer>();
+        encode = new HashMap<>();
+        decode = new HashMap<>();
 
         //"A-Z"
         for(int i = 0; i < 26; i++) {
@@ -170,6 +187,6 @@ class Base64Alphabet {
 
         //"="
         encode.put(64, (char) 61);
-        decode.put((char)61, 64);
+        decode.put((char) 61, 64);
     }
 }
