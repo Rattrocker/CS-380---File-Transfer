@@ -259,5 +259,6 @@ public class ServerProtocol {
         while (read < n) {
             read += in.read(buffer, read, n - read);
         }
+        System.out.println("read:"+read);
     }
 }
