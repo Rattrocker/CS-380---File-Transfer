@@ -19,14 +19,26 @@ public class ServerProtocol {
     protected boolean receiving = false;
     protected boolean xor;
     protected boolean asciiArmor;
+    protected byte[] xorKey;
     FileOutputStream fileOut;
     long fileSize;
     int numChunks;
     int chunkNum;
 
-    public ServerProtocol(DataInputStream in, DataOutputStream out, String loginFilename) {
+    public ServerProtocol(DataInputStream in, DataOutputStream out, String loginFilename, byte[] xorKeyFile, boolean enableXOR) {
         socketIn = in;
         socketOut = out;
+
+        //handles xor
+        this.xor = enableXOR;
+        
+        System.out.println("xor value" + xor);
+        xorKey = new byte[xorKeyFile.length];
+        //System.out.println("xorkeyfile lenght: " + xorKeyFile.length);
+
+        for(int i=0; i < xorKeyFile.length; i++) {
+            xorKey[i] = xorKeyFile[i];
+        } 
 
         // process login file
         loginMap = new HashMap<String,String>();
@@ -173,7 +185,7 @@ public class ServerProtocol {
 
         // decrypt chunk
         if (xor) {
-            chunkData = XORCipher.xorCipher(chunkData, "replace this key".getBytes());
+            chunkData = XORCipher.xorCipher(chunkData, xorKey);
         }
 
         // verify checksum
