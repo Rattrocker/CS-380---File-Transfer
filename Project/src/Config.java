@@ -2,7 +2,7 @@
  * Created by cthill on 11/16/16.
  */
 public class Config {
-    public static final int CHUNK_SIZE = 4096;
+    public static final int CHUNK_SIZE = 2048;
     // amount of times to repeat check sum generation; higher numbers create shorter hashes
     public static final int CHECKSUM_REPETITIONS = 5;
     public static final int MAX_CHUNK_RETRY = 3;
