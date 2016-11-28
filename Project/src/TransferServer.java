@@ -19,7 +19,7 @@ public class TransferServer {
         this.authenticated = false;
     }
 
-    public void serve(byte[] xorKeyFile, boolean enableXOR) throws IOException {
+    public void serve(byte[] xorKeyFile) throws IOException {
         // server only accepts one client at a time
         // TODO: implement threading
 
@@ -34,7 +34,7 @@ public class TransferServer {
             InetAddress clientAddress = clientSocket.getInetAddress();
             System.out.println("Client connect: " + clientAddress);
             // TODO: replace literal "login.txt" with command line parameter
-            ServerProtocol protocol = new ServerProtocol(socketIn, socketOut, "login.txt", xorKey, enableXOR);
+            ServerProtocol protocol = new ServerProtocol(clientSocket, "login.txt", xorKey);
             protocol.run(); // blocks until client disconnects
             System.out.println("Client disconnect: " + clientAddress);
         }

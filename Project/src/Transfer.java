@@ -1,15 +1,7 @@
-import java.io.EOFException;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
-import java.net.SocketException;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.Path;
-
 
 /**
  * Created by cthill on 10/31/16.
@@ -20,29 +12,26 @@ public class Transfer {
 
         if (argslist.size() < 1) {
             System.out.println("Usage:");
-            System.out.println("\ttransfer [-s server] [-p port] [-x xorKeyFile] [-d drop random packets] [sourcefile host:destfile]");
+            System.out.println("\ttransfer [-s server] [-a asciiarmor] [-p port] [-x xorKeyFile] [-d drop random packets] [sourcefile host:destfile]");
             System.exit(1);
         }
 
-        //String xorFileName="";
-        byte[] xorKeyFile = new byte[0];
+        // read xor file if xor switch is enabled
+        byte[] xorKey = new byte[Constants.CHUNK_SIZE];
         boolean enableXOR = false;
 
         if (argslist.indexOf("-x") != -1) {
             try {
                 String xorFileName = argslist.get(argslist.indexOf("-x") + 1);
-                Path path = Paths.get(xorFileName);
-                xorKeyFile = Files.readAllBytes(path);
+                File f = new File(xorFileName);
+                new FileInputStream(f).read(xorKey);
                 enableXOR = true;
-
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
-                enableXOR = false;
+                System.out.println("Error reading file: " + e.getMessage());
+                System.exit(1);
             }
-            
-        }        
-        
+        }
 
         boolean serverMode = argslist.contains("-s");
         if (serverMode) {
@@ -56,7 +45,7 @@ public class Transfer {
                 TransferServer ts = new TransferServer(port, false);
                 System.out.println("Listening on port " + port);
 
-                ts.serve(xorKeyFile, enableXOR);
+                ts.serve(xorKey);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -155,7 +144,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, xorKeyFile, enableXOR, dropRandomPackets, dropChance);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, enableXOR, xorKey, dropRandomPackets, dropChance);
 
                 // close connection
                 tc.disconnect();

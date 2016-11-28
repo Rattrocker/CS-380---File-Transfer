@@ -34,21 +34,10 @@ public class ServerProtocol {
     int chunkNum;
     int bytesRead;
 
-    public ServerProtocol(Socket clientSocket, String loginFilename, byte[] xorKeyFile, boolean enableXOR) throws IOException {
+    public ServerProtocol(Socket clientSocket, String loginFilename, byte[] xorKey) throws IOException {
         this.clientSocket = clientSocket;
         socketIn = new DataInputStream(clientSocket.getInputStream());
         socketOut = new DataOutputStream(clientSocket.getOutputStream());
-
-        //handles xor
-        this.xor = enableXOR;
-        
-        System.out.println("xor value" + xor);
-        xorKey = new byte[xorKeyFile.length];
-        //System.out.println("xorkeyfile lenght: " + xorKeyFile.length);
-
-        for(int i=0; i < xorKeyFile.length; i++) {
-            xorKey[i] = xorKeyFile[i];
-        } 
 
         // process login file
         loginMap = new HashMap<String,String[]>();
