@@ -1,3 +1,4 @@
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -87,23 +88,33 @@ public class Transfer {
                 }
             }
 
+
+            TransferClient tc;
             try {
                 // connect to server
-                TransferClient tc = new TransferClient(serverAddress, port);
+                tc = new TransferClient(serverAddress, port);
+            } catch (IOException e) {
+                System.out.println("Error connecting to " + serverAddress + ": " + e.getMessage());
+                return;
+            }
 
+            try {
                 // authenticate
                 Scanner in = new Scanner(System.in);
-                int attempts = 0;
-                while (attempts < Constants.MAX_AUTH_ATTEMPTS) {
-                    System.out.print("username: ");
+
+                while (true) {
+                    // read username and pass
+                    System.out.print("Username: ");
                     String user = in.nextLine();
-                    System.out.print("password: ");
+                    System.out.print("Password: ");
                     String pass = new String(System.console().readPassword());
+
+                    // try auth. If good, break out of loop
                     if (tc.authenticate(user, pass)) {
                         break;
                     }
+
                     System.out.println("Bad login, try again.");
-                    attempts++;
                 }
 
                 // transfer file
@@ -111,8 +122,15 @@ public class Transfer {
 
                 // close connection
                 tc.disconnect();
+
+                System.out.println("Done.");
+            } catch (EOFException e) {
+                System.out.println("Connection closed by server.");
+                tc.close();
             } catch (IOException e) {
-                System.out.println("Error connecting to " + serverAddress + ": " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                tc.close();
             }
         }
     }

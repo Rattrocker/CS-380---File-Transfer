@@ -11,21 +11,26 @@ import java.util.Scanner;
  */
 
 public class ServerProtocol {
+    // objects
     protected Socket clientSocket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
     protected HashMap<String, String> loginMap;
+    protected FileOutputStream fileOut;
 
-    // vars for client state
-    protected boolean authenticated = false;
-    protected boolean receiving = false;
+    // config
     protected boolean xor;
     protected boolean asciiArmor;
-    FileOutputStream fileOut;
+
+    // client state
+    protected boolean done;
+    protected boolean authenticated;
+    protected boolean receiving;
+    int authAttempts;
     long fileSize;
     int numChunks;
     int chunkNum;
-    int bytesRead = 0;
+    int bytesRead;
 
     public ServerProtocol(Socket clientSocket, String loginFilename) throws IOException {
         this.clientSocket = clientSocket;
@@ -58,11 +63,16 @@ public class ServerProtocol {
             System.out.println("file not found: " + loginFilename);
             System.exit(1);
         }
+        authAttempts = 0;
     }
 
     public void run() throws IOException {
+        // setup initial state
+        done = false;
+        authenticated = false;
+        receiving = false;
+
         try {
-            boolean done = false;
             while (!done) {
                 // read packet header and run appropriate handler
                 byte incoming = socketIn.readByte();
@@ -80,7 +90,7 @@ public class ServerProtocol {
                         break;
 
                     case Constants.PH_DISCONNECT:
-                        done = true;
+                        disconnect();
                         break;
                 }
             }
@@ -107,6 +117,10 @@ public class ServerProtocol {
         }
     }
 
+    public void disconnect() {
+        this.done = true;
+    }
+
     public void handleAuth() throws IOException {
         // read username and password
         String user = socketIn.readUTF();
@@ -116,17 +130,21 @@ public class ServerProtocol {
         String passhash = pass;
 
         // check username and password
-        boolean goodLogin = false;
         if (loginMap.containsKey(user) && loginMap.get(user).equals(passhash)) {
-            goodLogin = true;
+            authenticated = true;
         }
-        // update client state
-        authenticated = goodLogin;
 
         // write auth header
         socketOut.writeByte(Constants.PH_AUTH);
-        // write 1 for successful auth, 0 otherwise
-        socketOut.writeByte(goodLogin ? 1 : 0);
+        socketOut.writeBoolean(authenticated);
+
+        // check attempts
+        if (!authenticated) {
+            authAttempts++;
+            if (authAttempts > Constants.MAX_AUTH_ATTEMPTS) {
+                disconnect();
+            }
+        }
     }
 
     public void handleStartTransmit() throws IOException {
@@ -146,6 +164,7 @@ public class ServerProtocol {
 
         // update state
         receiving = true;
+        bytesRead = 0;
         System.out.println("Receiving file: " + destFilename);
     }
 

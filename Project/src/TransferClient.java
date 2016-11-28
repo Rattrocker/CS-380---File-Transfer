@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.ProtocolException;
 import java.net.Socket;
 import java.util.Random;
 
@@ -122,16 +123,24 @@ public class TransferClient {
 
         byte responseHeader = socketIn.readByte();
         if (responseHeader == Constants.PH_AUTH) {
-            // server will return 0 for bad credentials, 1 for good
-            return (socketIn.readByte() != 0);
+            // server will return false for bad credentials, true for good
+            return (socketIn.readBoolean());
         } else {
-            // TODO: throw exception
-            return false;
+            throw new ProtocolException("Expecting auth packet header.");
         }
     }
 
     public void disconnect() throws IOException {
         socketOut.writeByte(Constants.PH_DISCONNECT);
-        socket.close();
+    }
+
+    public void close() {
+        try {
+            socketOut.close();
+            socketIn.close();
+            socket.close();
+        } catch (IOException e) {
+            // who cares?
+        }
     }
 }
