@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -38,6 +39,7 @@ public class Transfer {
             int port = 9999;
             boolean asciiArmor = false;
             boolean dropRandomPackets = false;
+            int dropChance = 0;
             boolean xor = true;
 
             boolean firstFile = true;
@@ -58,6 +60,11 @@ public class Transfer {
                     // force drop packet flag
                     else if(arg.equals("-d")) {
                         dropRandomPackets = true;
+                        dropChance = Integer.parseInt(argslist.get(++i));
+                        if (dropChance < 1) {
+                            System.out.println("Minimum packet drop change is 1.");
+                            System.exit(1);
+                        }
                     }
                     // do not xor flag
                     else if(arg.equals("-x")) {
@@ -101,7 +108,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, asciiArmor, xor, dropRandomPackets);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, xor, dropRandomPackets, dropChance);
 
                 // close connection
                 tc.disconnect();

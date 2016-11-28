@@ -1,5 +1,6 @@
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.*;
@@ -23,14 +24,12 @@ public class TransferServer {
         // TODO: implement threading
         while (true) {
             Socket clientSocket = serverSocket.accept(); // blocks until a client connects
-            System.out.println("Client connect: " + clientSocket.getInetAddress());
-            DataInputStream socketIn = new DataInputStream(clientSocket.getInputStream());
-            DataOutputStream socketOut = new DataOutputStream(clientSocket.getOutputStream());
-
+            InetAddress clientAddress = clientSocket.getInetAddress();
+            System.out.println("Client connect: " + clientAddress);
             // TODO: replace literal "login.txt" with command line parameter
-            ServerProtocol protocol = new ServerProtocol(socketIn, socketOut, "login.txt");
+            ServerProtocol protocol = new ServerProtocol(clientSocket, "login.txt");
             protocol.run(); // blocks until client disconnects
-            System.out.println("Client disconnect: " + clientSocket.getInetAddress());
+            System.out.println("Client disconnect: " + clientAddress);
         }
     }
 }

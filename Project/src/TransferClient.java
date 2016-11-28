@@ -18,7 +18,7 @@ public class TransferClient {
         this.rand = new Random();
     }
 
-    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor, boolean dropRandomPackets) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor, boolean dropRandomPackets, int dropChance) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -64,13 +64,6 @@ public class TransferClient {
 
             int attempts = 0;
             while (true) {
-                if (dropRandomPackets) {
-                    // mess up the checksum with a 1/5 chance
-                    if (rand.nextInt(5) == 0) {
-                        checksum[0] = (byte) ~checksum[0];
-                    }
-                }
-
                 // send packet header to indicate incoming chunk
                 socketOut.writeByte(Constants.PH_CHUNK_DATA);
 
@@ -86,7 +79,11 @@ public class TransferClient {
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
-                socketOut.write(checksum);
+                if (dropRandomPackets && rand.nextInt(dropChance) == 0) {
+                    socketOut.write(new byte[checksum.length]);
+                } else {
+                    socketOut.write(checksum);
+                }
                 attempts++;
 
                 // check if chunk was received okay

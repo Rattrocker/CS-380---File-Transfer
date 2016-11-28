@@ -1,6 +1,7 @@
 import java.io.*;
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.net.Socket;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -10,6 +11,7 @@ import java.util.Scanner;
  */
 
 public class ServerProtocol {
+    protected Socket clientSocket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
     protected HashMap<String, String> loginMap;
@@ -23,11 +25,12 @@ public class ServerProtocol {
     long fileSize;
     int numChunks;
     int chunkNum;
-    int packetsToDrop;
+    int bytesRead = 0;
 
-    public ServerProtocol(DataInputStream in, DataOutputStream out, String loginFilename) {
-        socketIn = in;
-        socketOut = out;
+    public ServerProtocol(Socket clientSocket, String loginFilename) throws IOException {
+        this.clientSocket = clientSocket;
+        socketIn = new DataInputStream(clientSocket.getInputStream());
+        socketOut = new DataOutputStream(clientSocket.getOutputStream());
 
         // process login file
         loginMap = new HashMap<String,String>();
@@ -58,13 +61,12 @@ public class ServerProtocol {
     }
 
     public void run() throws IOException {
-        boolean done = false;
-        while (!done) {
-            try {
+        try {
+            boolean done = false;
+            while (!done) {
                 // read packet header and run appropriate handler
                 byte incoming = socketIn.readByte();
                 switch (incoming) {
-
                     case Constants.PH_AUTH:
                         handleAuth();
                         break;
@@ -78,22 +80,29 @@ public class ServerProtocol {
                         break;
 
                     case Constants.PH_DISCONNECT:
-                        socketIn.close();
-                        socketOut.close();
                         done = true;
                         break;
                 }
-            } catch (ProtocolException e) {
-                // get error message
-                String message = "Protocol error: " + e.getMessage();
-                System.out.println(message);
-                // write protocol error packet
-                socketOut.writeByte(Constants.PH_PROTO_ERROR);
-                socketOut.writeUTF(message);
-                // disconnect
-                socketIn.close();
-                socketOut.close();
-                done = true;
+            }
+        }  catch (ProtocolException e) {
+            // get error message
+            String message = "Protocol error: " + e.getMessage();
+            System.out.println(message);
+            // write protocol error packet
+            socketOut.writeByte(Constants.PH_PROTO_ERROR);
+            socketOut.writeUTF(message);
+        } catch (EOFException e) {
+            // disconnect
+        } catch (Exception e) {
+            // general exception
+            e.printStackTrace();
+        } finally {
+            socketOut.close();
+            socketIn.close();
+            clientSocket.close();
+            if (receiving) {
+                fileOut.close();
+                System.out.println("Transfer interrupted.");
             }
         }
     }
@@ -120,7 +129,7 @@ public class ServerProtocol {
         socketOut.writeByte(goodLogin ? 1 : 0);
     }
 
-    public void handleStartTransmit() throws IOException, ProtocolException {
+    public void handleStartTransmit() throws IOException {
         if (receiving) {
             throw new ProtocolException("Received double start_transmit");
         }
@@ -137,10 +146,10 @@ public class ServerProtocol {
 
         // update state
         receiving = true;
-        System.out.println("receiving file: " + destFilename);
+        System.out.println("Receiving file: " + destFilename);
     }
 
-    public void handleFileChunk() throws IOException, ProtocolException {
+    public void handleFileChunk() throws IOException {
         if (!receiving) {
             throw new ProtocolException("Received unexpected chunk data");
         }
@@ -195,6 +204,7 @@ public class ServerProtocol {
         fileOut.write(chunkData);
         // update state
         chunkNum++;
+        bytesRead += chunkData.length;
         // indicate good chunk
         socketOut.writeByte(Constants.PH_CHUNK_OK);
 
@@ -202,6 +212,7 @@ public class ServerProtocol {
         if (chunkNum == numChunks) {
             fileOut.close();
             receiving = false;
+            System.out.println("Done. Got " + bytesRead + " bytes.");
         }
     }
 }
