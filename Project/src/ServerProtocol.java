@@ -1,6 +1,8 @@
 import java.io.*;
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -10,38 +12,36 @@ import java.util.Scanner;
  */
 
 public class ServerProtocol {
+    // objects
+    protected Socket clientSocket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
-    protected HashMap<String, String> loginMap;
+    protected HashMap<String, String[]> loginMap;
+    protected FileOutputStream fileOut;
 
-    // vars for client state
-    protected boolean authenticated = false;
-    protected boolean receiving = false;
+    // config
     protected boolean xor;
+	protected byte[] xorKey;
     protected boolean asciiArmor;
-    protected byte[] xorKey;
-    FileOutputStream fileOut;
+
+    // client state
+    protected boolean done;
+    protected boolean authenticated;
+    protected boolean receiving;
+    int authAttempts;
     long fileSize;
     int numChunks;
     int chunkNum;
+    int bytesRead;
 
-    public ServerProtocol(DataInputStream in, DataOutputStream out, String loginFilename, byte[] xorKeyFile, boolean enableXOR) {
-        socketIn = in;
-        socketOut = out;
-
-        //handles xor
-        this.xor = enableXOR;
-        
-        System.out.println("xor value" + xor);
-        xorKey = new byte[xorKeyFile.length];
-        //System.out.println("xorkeyfile lenght: " + xorKeyFile.length);
-
-        for(int i=0; i < xorKeyFile.length; i++) {
-            xorKey[i] = xorKeyFile[i];
-        } 
+    public ServerProtocol(Socket clientSocket, String loginFilename, byte[] xorKey) throws IOException {
+        this.clientSocket = clientSocket;
+        socketIn = new DataInputStream(clientSocket.getInputStream());
+        socketOut = new DataOutputStream(clientSocket.getOutputStream());
+        this.xorKey = xorKey;
 
         // process login file
-        loginMap = new HashMap<String,String>();
+        loginMap = new HashMap<String,String[]>();
         try {
             // load login file
             File loginFile = new File(loginFilename);
@@ -50,32 +50,41 @@ public class ServerProtocol {
             // parse entries
             while (loginScanner.hasNext()) {
                 // read entry from login file
-                String line = loginScanner.nextLine();
+                String line = loginScanner.nextLine().trim();
+                // skip comments
+                if (line.startsWith("#")) {
+                    continue;
+                }
+                // split on colon
                 String[] split = line.split(":");
 
                 // check formatting
-                if (split.length != 2) {
+                if (split.length != 3) {
                     System.out.println("Bad login file near: " + line);
                     System.exit(1);
                 }
 
                 // add entry to loginMap for lookup later
-                loginMap.put(split[0], split[1]);
+                loginMap.put(split[0], new String[] { split[1], split[2] });
             }
         } catch (FileNotFoundException e) {
             System.out.println("file not found: " + loginFilename);
             System.exit(1);
         }
+        authAttempts = 0;
     }
 
     public void run() throws IOException {
-        boolean done = false;
-        while (!done) {
-            try {
+        // setup initial state
+        done = false;
+        authenticated = false;
+        receiving = false;
+
+        try {
+            while (!done) {
                 // read packet header and run appropriate handler
                 byte incoming = socketIn.readByte();
                 switch (incoming) {
-
                     case Constants.PH_AUTH:
                         handleAuth();
                         break;
@@ -89,24 +98,32 @@ public class ServerProtocol {
                         break;
 
                     case Constants.PH_DISCONNECT:
-                        socketIn.close();
-                        socketOut.close();
-                        done = true;
+                        disconnect();
                         break;
                 }
-            } catch (ProtocolException e) {
-                // get error message
-                String message = "Protocol error: " + e.getMessage();
-                System.out.println(message);
-                // write protocol error packet
-                socketOut.writeByte(Constants.PH_PROTO_ERROR);
-                socketOut.writeUTF(message);
-                // disconnect
-                socketIn.close();
-                socketOut.close();
-                done = true;
+            }
+        }  catch (ProtocolException e) {
+            // get error message
+            String message = "Protocol error: " + e.getMessage();
+            System.out.println(message);
+        } catch (EOFException e) {
+            // disconnect
+        } catch (Exception e) {
+            // general exception
+            e.printStackTrace();
+        } finally {
+            socketOut.close();
+            socketIn.close();
+            clientSocket.close();
+            if (receiving) {
+                fileOut.close();
+                System.out.println("Transfer interrupted.");
             }
         }
+    }
+
+    public void disconnect() {
+        this.done = true;
     }
 
     public void handleAuth() throws IOException {
@@ -114,24 +131,39 @@ public class ServerProtocol {
         String user = socketIn.readUTF();
         String pass = socketIn.readUTF();
 
-        // TODO: hash password here
-        String passhash = pass;
+        // check if user exists
+        if (loginMap.containsKey(user)) {
+            // fetch salt and passhash
+            String[] data = loginMap.get(user);
+            if (data.length == 2) {
+                String salt = data[0];
+                String passhash = data[1];
 
-        // check username and password
-        boolean goodLogin = false;
-        if (loginMap.containsKey(user) && loginMap.get(user).equals(passhash)) {
-            goodLogin = true;
+                // compare
+                try {
+                    if (passhash.equals(Hash.generatePasswordHash(salt, pass))) {
+                        authenticated = true;
+                    }
+                } catch (NoSuchAlgorithmException e) {
+                    System.out.println("Failed to hash password: " + e.getMessage());
+                }
+            }
         }
-        // update client state
-        authenticated = goodLogin;
 
         // write auth header
         socketOut.writeByte(Constants.PH_AUTH);
-        // write 1 for successful auth, 0 otherwise
-        socketOut.writeByte(goodLogin ? 1 : 0);
+        socketOut.writeBoolean(authenticated);
+
+        // check attempts
+        if (!authenticated) {
+            authAttempts++;
+            if (authAttempts >= Constants.MAX_AUTH_ATTEMPTS) {
+                disconnect();
+            }
+        }
     }
 
-    public void handleStartTransmit() throws IOException, ProtocolException {
+    public void handleStartTransmit() throws IOException {
         if (receiving) {
             throw new ProtocolException("Received double start_transmit");
         }
@@ -148,10 +180,11 @@ public class ServerProtocol {
 
         // update state
         receiving = true;
-        System.out.println("receiving file: " + destFilename);
+        bytesRead = 0;
+        System.out.println("Receiving file: " + destFilename);
     }
 
-    public void handleFileChunk() throws IOException, ProtocolException {
+    public void handleFileChunk() throws IOException {
         if (!receiving) {
             throw new ProtocolException("Received unexpected chunk data");
         }
@@ -177,6 +210,7 @@ public class ServerProtocol {
         int checksumLen = socketIn.readInt();
         byte[] checksumData = new byte[checksumLen];
         socketIn.read(checksumData);
+        
 
         // check chunk number
         if (thisChunkNum != chunkNum) {
@@ -187,7 +221,7 @@ public class ServerProtocol {
         if (xor) {
             chunkData = XORCipher.xorCipher(chunkData, xorKey);
         }
-
+        
         // verify checksum
         byte[] chunkVerify = Hash.generateCheckSum(chunkData);
         if (chunkVerify.length != checksumData.length) {
@@ -205,6 +239,7 @@ public class ServerProtocol {
         fileOut.write(chunkData);
         // update state
         chunkNum++;
+        bytesRead += chunkData.length;
         // indicate good chunk
         socketOut.writeByte(Constants.PH_CHUNK_OK);
 
@@ -212,6 +247,7 @@ public class ServerProtocol {
         if (chunkNum == numChunks) {
             fileOut.close();
             receiving = false;
+            System.out.println("Done. Got " + bytesRead + " bytes.");
         }
     }
 }

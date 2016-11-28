@@ -1,9 +1,7 @@
 import java.io.*;
+import java.net.ProtocolException;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Scanner;
+import java.util.Random;
 
 /**
  * Created by cthill on 11/16/16.
@@ -12,22 +10,16 @@ public class TransferClient {
     protected Socket socket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
+    protected Random rand;
 
     public TransferClient(String address, int port) throws IOException {
         this.socket = new Socket(address, port);
         this.socketIn = new DataInputStream(socket.getInputStream());
         this.socketOut = new DataOutputStream(socket.getOutputStream());
+        this.rand = new Random();
     }
 
-    public void transfer(String sourceFilename, String destFilename, byte[] xorKeyFile, boolean enableXOR) throws FileNotFoundException, IOException {
-        //get xor key
-        byte[] xorKey = new byte[xorKeyFile.length];
-
-        for(int i=0; i < xorKeyFile.length; i++) {
-        	xorKey[i] = xorKeyFile[i];
-        } 
-
-
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean enableXOR, byte[] xorKey, boolean dropRandomPackets, int dropChance) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -43,15 +35,11 @@ public class TransferClient {
         // send packet header to indicate initiation of file transfer
         socketOut.writeByte(Constants.PH_START_TRANSMIT);
 
-        //TODO: parse command line switches for xor and asciiArmor
-        boolean xor = enableXOR;
-        boolean asciiArmor = true;
-
         // send filename, file size, chunk size, encoding, etc.
         socketOut.writeUTF(destFilename);
         socketOut.writeLong(size);
         socketOut.writeInt(chunks);
-        socketOut.writeBoolean(xor);
+        socketOut.writeBoolean(enableXOR);
         socketOut.writeBoolean(asciiArmor);
 
         // read each chunk
@@ -70,7 +58,7 @@ public class TransferClient {
             // generate checksum hash
             byte[] checksum = Hash.generateCheckSum(buffer);
 
-            if (xor) {
+            if (enableXOR) {
                 buffer = XORCipher.xorCipher(buffer, xorKey);
             }
 
@@ -82,7 +70,6 @@ public class TransferClient {
                 // send chunk number (i)
                 socketOut.writeInt(i);
 
-                // write bytes to socket
                 if (asciiArmor) {
                     socketOut.writeUTF(Base64.b64Encode(buffer));
                 } else {
@@ -92,21 +79,22 @@ public class TransferClient {
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
-                socketOut.write(checksum);
+                if (dropRandomPackets && rand.nextInt(dropChance) == 0) {
+                    socketOut.write(new byte[checksum.length]);
+                } else {
+                    socketOut.write(checksum);
+                }
                 attempts++;
 
-                // check if chunk was reveived okay
+                // check if chunk was received okay
                 byte incoming = socketIn.readByte();
                 if (incoming == Constants.PH_CHUNK_OK) {
                     break;
-                } else if (incoming == Constants.PH_PROTO_ERROR) {
-                    // print protocol error message
-                    System.out.println(socketIn.readUTF());
-                    disconnect();
-                    return;
                 }
 
-                if (attempts >= Constants.CHECK_SUM_REPETITIONS) {
+                System.out.println("Chunk #" + i + " bad checksum. Retrying (" + attempts + "/" + Constants.MAX_CHUNK_RETRY + ")");
+
+                if (attempts >= Constants.MAX_CHUNK_RETRY) {
                     System.out.println("Error: exceeded max chunk retries");
                     disconnect();
                     return;
@@ -129,18 +117,24 @@ public class TransferClient {
 
         byte responseHeader = socketIn.readByte();
         if (responseHeader == Constants.PH_AUTH) {
-            // server will return 0 for bad credentials, 1 for good
-            return (socketIn.readByte() != 0);
+            // server will return false for bad credentials, true for good
+            return (socketIn.readBoolean());
         } else {
-            // TODO: throw exception
-            return false;
+            throw new ProtocolException("Expecting auth packet header.");
         }
     }
 
     public void disconnect() throws IOException {
         socketOut.writeByte(Constants.PH_DISCONNECT);
-        socketIn.close();
-        socketOut.close();
-        socket.close();
+    }
+
+    public void close() {
+        try {
+            socketOut.close();
+            socketIn.close();
+            socket.close();
+        } catch (IOException e) {
+            // who cares?
+        }
     }
 }
