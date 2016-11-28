@@ -80,34 +80,20 @@ public class Hash {
      * @return hash of password and salt
      * @throws NoSuchAlgorithmException 
      */
-    public static byte[] generatePasswordHash(byte[] salt, byte[] password) throws NoSuchAlgorithmException {
-        String hash = "";
-
+    public static String generatePasswordHash(String salt, String password) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
-        md.update(salt);
-        hash += new String(Base64.b64Encode(md.digest()));
-        hash += ":";
-        md.update(password);
-        hash += new String(Base64.b64Encode(md.digest()));
-
-        return hash.getBytes();
+        byte[] result = md.digest((salt + password).getBytes());
+        return bytesToHex(result);
     }
 
-    /**
-     * Compares two hash codes for equivalence
-     * 
-     * @param hash1 first check-sum to compare
-     * @param hash2 second check-sum to compare
-     * @return true if both hashes are the same, false otherwise
-     */
-    public static boolean compareHashes(byte[] hash1, byte[] hash2) {
-        boolean same = true;
-        for(int i = 0; i < hash1.length; i++) {
-            if(hash1[i] != hash2[i]) {
-                same = false;
-                i = hash1.length;
-            }
+    final protected static char[] hexArray = "0123456789abcdef".toCharArray();
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
-        return same;
+        return new String(hexChars);
     }
 }

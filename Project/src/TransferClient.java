@@ -91,11 +91,6 @@ public class TransferClient {
                 byte incoming = socketIn.readByte();
                 if (incoming == Constants.PH_CHUNK_OK) {
                     break;
-                } else if (incoming == Constants.PH_PROTO_ERROR) {
-                    // print protocol error message
-                    System.out.println(socketIn.readUTF());
-                    disconnect();
-                    return;
                 }
 
                 System.out.println("Chunk #" + i + " bad checksum. Retrying (" + attempts + "/" + Constants.MAX_CHUNK_RETRY + ")");

@@ -16,6 +16,4 @@ public class Constants {
     public static final byte PH_START_TRANSMIT = 0x3;
     public static final byte PH_CHUNK_ERROR = 0x4;
     public static final byte PH_CHUNK_OK = 0x5;
-    public static final byte PH_PROTO_ERROR = 0x6;
-
 }

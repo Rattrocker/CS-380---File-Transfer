@@ -2,6 +2,7 @@ import java.io.*;
 import java.io.IOException;
 import java.net.ProtocolException;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -15,7 +16,7 @@ public class ServerProtocol {
     protected Socket clientSocket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
-    protected HashMap<String, String> loginMap;
+    protected HashMap<String, String[]> loginMap;
     protected FileOutputStream fileOut;
 
     // config
@@ -38,7 +39,7 @@ public class ServerProtocol {
         socketOut = new DataOutputStream(clientSocket.getOutputStream());
 
         // process login file
-        loginMap = new HashMap<String,String>();
+        loginMap = new HashMap<String,String[]>();
         try {
             // load login file
             File loginFile = new File(loginFilename);
@@ -47,17 +48,22 @@ public class ServerProtocol {
             // parse entries
             while (loginScanner.hasNext()) {
                 // read entry from login file
-                String line = loginScanner.nextLine();
+                String line = loginScanner.nextLine().trim();
+                // skip comments
+                if (line.startsWith("#")) {
+                    continue;
+                }
+                // split on colon
                 String[] split = line.split(":");
 
                 // check formatting
-                if (split.length != 2) {
+                if (split.length != 3) {
                     System.out.println("Bad login file near: " + line);
                     System.exit(1);
                 }
 
                 // add entry to loginMap for lookup later
-                loginMap.put(split[0], split[1]);
+                loginMap.put(split[0], new String[] { split[1], split[2] });
             }
         } catch (FileNotFoundException e) {
             System.out.println("file not found: " + loginFilename);
@@ -98,9 +104,6 @@ public class ServerProtocol {
             // get error message
             String message = "Protocol error: " + e.getMessage();
             System.out.println(message);
-            // write protocol error packet
-            socketOut.writeByte(Constants.PH_PROTO_ERROR);
-            socketOut.writeUTF(message);
         } catch (EOFException e) {
             // disconnect
         } catch (Exception e) {
@@ -126,12 +129,23 @@ public class ServerProtocol {
         String user = socketIn.readUTF();
         String pass = socketIn.readUTF();
 
-        // TODO: hash password here
-        String passhash = pass;
+        // check if user exists
+        if (loginMap.containsKey(user)) {
+            // fetch salt and passhash
+            String[] data = loginMap.get(user);
+            if (data.length == 2) {
+                String salt = data[0];
+                String passhash = data[1];
 
-        // check username and password
-        if (loginMap.containsKey(user) && loginMap.get(user).equals(passhash)) {
-            authenticated = true;
+                // compare
+                try {
+                    if (passhash.equals(Hash.generatePasswordHash(salt, pass))) {
+                        authenticated = true;
+                    }
+                } catch (NoSuchAlgorithmException e) {
+                    System.out.println("Failed to hash password: " + e.getMessage());
+                }
+            }
         }
 
         // write auth header
@@ -141,7 +155,7 @@ public class ServerProtocol {
         // check attempts
         if (!authenticated) {
             authAttempts++;
-            if (authAttempts > Constants.MAX_AUTH_ATTEMPTS) {
+            if (authAttempts >= Constants.MAX_AUTH_ATTEMPTS) {
                 disconnect();
             }
         }

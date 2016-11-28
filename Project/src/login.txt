@@ -1,5 +1,2 @@
-username:password
-yuyen:wutwut
-moreuser:morepassword
-testuser:testpass
-checkthis:checkthat
+# username:salt:sha512hash
+user:d41d8cd98f00b204e9800998ecf8427e:c8ee4d4e8469f2b44cbd6de922f3a00cdc4e1ef7f0527c8a535d8bf0e35e676ca74ba0ecef4140dd484a9c3e3410bae7cd25eadeff47d64418ac62dc35e10659
