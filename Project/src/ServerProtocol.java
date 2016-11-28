@@ -21,6 +21,7 @@ public class ServerProtocol {
 
     // config
     protected boolean xor;
+	protected byte[] xorKey;
     protected boolean asciiArmor;
 
     // client state
@@ -33,10 +34,21 @@ public class ServerProtocol {
     int chunkNum;
     int bytesRead;
 
-    public ServerProtocol(Socket clientSocket, String loginFilename) throws IOException {
+    public ServerProtocol(Socket clientSocket, String loginFilename, byte[] xorKeyFile, boolean enableXOR) throws IOException {
         this.clientSocket = clientSocket;
         socketIn = new DataInputStream(clientSocket.getInputStream());
         socketOut = new DataOutputStream(clientSocket.getOutputStream());
+
+        //handles xor
+        this.xor = enableXOR;
+        
+        System.out.println("xor value" + xor);
+        xorKey = new byte[xorKeyFile.length];
+        //System.out.println("xorkeyfile lenght: " + xorKeyFile.length);
+
+        for(int i=0; i < xorKeyFile.length; i++) {
+            xorKey[i] = xorKeyFile[i];
+        } 
 
         // process login file
         loginMap = new HashMap<String,String[]>();
@@ -217,7 +229,7 @@ public class ServerProtocol {
 
         // decrypt chunk
         if (xor) {
-            chunkData = XORCipher.xorCipher(chunkData, "replace this key".getBytes());
+            chunkData = XORCipher.xorCipher(chunkData, xorKey);
         }
         
         // verify checksum

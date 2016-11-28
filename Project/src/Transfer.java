@@ -3,6 +3,13 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.net.SocketException;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+
 
 /**
  * Created by cthill on 10/31/16.
@@ -13,9 +20,29 @@ public class Transfer {
 
         if (argslist.size() < 1) {
             System.out.println("Usage:");
-            System.out.println("\ttransfer [-s server] [-p port] [-x do not xor] [-a ascii armor] [-d drop random packets] [sourcefile host:destfile]");
+            System.out.println("\ttransfer [-s server] [-p port] [-x xorKeyFile] [-d drop random packets] [sourcefile host:destfile]");
             System.exit(1);
         }
+
+        //String xorFileName="";
+        byte[] xorKeyFile = new byte[0];
+        boolean enableXOR = false;
+
+        if (argslist.indexOf("-x") != -1) {
+            try {
+                String xorFileName = argslist.get(argslist.indexOf("-x") + 1);
+                Path path = Paths.get(xorFileName);
+                xorKeyFile = Files.readAllBytes(path);
+                enableXOR = true;
+
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+                enableXOR = false;
+            }
+            
+        }        
+        
 
         boolean serverMode = argslist.contains("-s");
         if (serverMode) {
@@ -28,7 +55,8 @@ public class Transfer {
 
                 TransferServer ts = new TransferServer(port, false);
                 System.out.println("Listening on port " + port);
-                ts.serve();
+
+                ts.serve(xorKeyFile, enableXOR);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -79,11 +107,13 @@ public class Transfer {
                     } else {
                         String[] split = arg.split(":");
                         serverAddress = split[0];
+
                         if (split.length > 1) {
                             destFilename = split[1];
                         } else {
                             destFilename = sourceFilename;
                         }
+
                     }
                 }
             }
@@ -125,7 +155,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, asciiArmor, xor, dropRandomPackets, dropChance);
+                tc.transfer(sourceFilename, destFilename, xorKeyFile, enableXOR, dropRandomPackets, dropChance);
 
                 // close connection
                 tc.disconnect();
