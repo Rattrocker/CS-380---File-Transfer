@@ -143,6 +143,7 @@ public class ServerProtocol {
                 try {
                     if (passhash.equals(Hash.generatePasswordHash(salt, pass))) {
                         authenticated = true;
+                        System.out.println("Login from: " + user);
                     }
                 } catch (NoSuchAlgorithmException e) {
                     System.out.println("Failed to hash password: " + e.getMessage());
@@ -203,13 +204,13 @@ public class ServerProtocol {
         } else {
             int chunkLen = socketIn.readInt();
             chunkData = new byte[chunkLen];
-            socketIn.read(chunkData);
+            readN(socketIn, chunkData, chunkLen);
         }
 
         // read checksum data
         int checksumLen = socketIn.readInt();
         byte[] checksumData = new byte[checksumLen];
-        socketIn.read(checksumData);
+        readN(socketIn, checksumData, checksumLen);
         
 
         // check chunk number
@@ -250,6 +251,13 @@ public class ServerProtocol {
             fileOut.close();
             receiving = false;
             System.out.println("Done. Got " + bytesRead + " bytes.");
+        }
+    }
+
+    private static void readN(DataInputStream in, byte[] buffer, int n) throws IOException{
+        int read = 0;
+        while (read < n) {
+            read += in.read(buffer, read, n - read);
         }
     }
 }

@@ -19,7 +19,7 @@ public class TransferClient {
         this.rand = new Random();
     }
 
-    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean enableXOR, byte[] xorKey, boolean dropRandomPackets, int dropChance) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean enableXOR, byte[] xorKey, int dropChance) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -79,7 +79,7 @@ public class TransferClient {
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
-                if (dropRandomPackets && rand.nextInt(dropChance) == 0) {
+                if (rand.nextInt(dropChance) == 0) {
                     socketOut.write(new byte[checksum.length]);
                 } else {
                     socketOut.write(checksum);

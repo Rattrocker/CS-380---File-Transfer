@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,8 +59,7 @@ public class Transfer {
         }
 
         // drop random packets switch
-        boolean dropRandomPackets = false;
-        int dropChance = 0;
+        int dropChance = -1;
         index = argslist.indexOf("-d");
         if (index != -1) {
             asciiArmor = true;
@@ -119,7 +119,6 @@ public class Transfer {
                         } else {
                             destFilename = sourceFilename;
                         }
-
                     }
                 }
             }
@@ -161,7 +160,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, asciiArmor, enableXOR, xorKey, dropRandomPackets, dropChance);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, enableXOR, xorKey, dropChance);
 
                 // close connection
                 tc.disconnect();
