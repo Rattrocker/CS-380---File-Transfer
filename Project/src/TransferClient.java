@@ -70,12 +70,12 @@ public class TransferClient {
                 // send chunk number (i)
                 socketOut.writeInt(i);
 
-                    if (asciiArmor) {
-                        socketOut.writeUTF(Base64.b64Encode(buffer));
-                    } else {
-                        socketOut.writeInt(buffer.length);
-                        socketOut.write(buffer);
-                    }
+                if (asciiArmor) {
+                    socketOut.writeUTF(Base64.b64Encode(buffer));
+                } else {
+                    socketOut.writeInt(buffer.length);
+                    socketOut.write(buffer);
+                }
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
