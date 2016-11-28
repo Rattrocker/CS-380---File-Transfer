@@ -79,7 +79,6 @@ public class TransferClient {
 
                 // write checksum to socket
                 socketOut.writeInt(checksum.length);
-                System.out.println(checksum.length);
                 if (dropRandomPackets && rand.nextInt(dropChance) == 0) {
                     socketOut.write(new byte[checksum.length]);
                 } else {
