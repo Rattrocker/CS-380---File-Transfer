@@ -231,6 +231,7 @@ public class ServerProtocol {
         for (int i = 0; i < checksumData.length; i++) {
             if (chunkVerify[i] != checksumData[i]) {
                 socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+                System.out.println("Chunk #" + i + " bad checksum.");
                 return;
             }
         }
