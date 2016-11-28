@@ -17,7 +17,7 @@ public class Transfer {
         }
 
         // read xor file if xor switch is enabled
-        byte[] xorKey = new byte[0];
+        byte[] xorKey = new byte[1];
         boolean enableXOR = false;
         int index = argslist.indexOf("-x");
         if (index != -1) {
