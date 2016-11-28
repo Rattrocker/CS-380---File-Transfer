@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -8,7 +9,7 @@ import java.util.Scanner;
  */
 public class Transfer {
     public static void main(String args[]) {
-        List<String> argslist = Arrays.asList(args);
+        ArrayList<String> argslist = new ArrayList<String>(Arrays.asList(args));
 
         if (argslist.size() < 1) {
             System.out.println("Usage:");
@@ -17,30 +18,72 @@ public class Transfer {
         }
 
         // read xor file if xor switch is enabled
-        byte[] xorKey = new byte[Constants.CHUNK_SIZE];
+        byte[] xorKey = new byte[0];
         boolean enableXOR = false;
-
-        if (argslist.indexOf("-x") != -1) {
+        int index = argslist.indexOf("-x");
+        if (index != -1) {
             try {
-                String xorFileName = argslist.get(argslist.indexOf("-x") + 1);
+                String xorFileName = argslist.get(index + 1);
                 File f = new File(xorFileName);
+                xorKey = new byte[(int) Math.min(f.length(), Constants.CHUNK_SIZE)];
                 new FileInputStream(f).read(xorKey);
                 enableXOR = true;
+
+                // remove from arglist
+                argslist.remove(index + 1);
+                argslist.remove(index);
             } catch (IOException e) {
                 System.out.println("Error reading file: " + e.getMessage());
                 System.exit(1);
             }
         }
 
-        boolean serverMode = argslist.contains("-s");
+        // read port
+        int port = 9999;
+        index = argslist.indexOf("-p");
+        if (index != -1) {
+            port = Integer.parseInt(argslist.get(index + 1));
+            // remove from arglist
+            argslist.remove(index + 1);
+            argslist.remove(index);
+        }
+
+        // ascii armor
+        boolean asciiArmor = false;
+        index = argslist.indexOf("-a");
+        if (index != -1) {
+            asciiArmor = true;
+            // remove from arglist
+            argslist.remove(index);
+        }
+
+        // drop random packets switch
+        boolean dropRandomPackets = false;
+        int dropChance = 0;
+        index = argslist.indexOf("-d");
+        if (index != -1) {
+            asciiArmor = true;
+            dropChance = Integer.parseInt(argslist.get(index + 1));
+            if (dropChance < 1) {
+                System.out.println("Minimum packet drop change is 1.");
+                System.exit(1);
+            }
+            // remove from arglist
+            argslist.remove(index + 1);
+            argslist.remove(index);
+        }
+
+        // server mode
+        boolean serverMode = false;
+        index = argslist.indexOf("-s");
+        if (index != -1) {
+            serverMode = true;
+            // remove from arglist
+            argslist.remove(index);
+        }
+
         if (serverMode) {
             try {
-                int port = 9999;
-
-                if (argslist.indexOf("-p") != -1) {
-                    port = Integer.parseInt(argslist.get(argslist.indexOf("-p") + 1));
-                }
-
                 TransferServer ts = new TransferServer(port, false);
                 System.out.println("Listening on port " + port);
 
@@ -49,46 +92,21 @@ public class Transfer {
                 e.printStackTrace();
             }
         } else {
+            boolean firstFile = true;
             String sourceFilename = "";
             String destFilename = "";
             String serverAddress = "";
-            int port = 9999;
-            boolean asciiArmor = false;
-            boolean dropRandomPackets = false;
-            int dropChance = 0;
-            boolean xor = true;
-
-            boolean firstFile = true;
 
             // parse arguments
             for (int i = 0; i < argslist.size(); i++) {
                 String arg = argslist.get(i);
 
                 if (arg.startsWith("-")) {
-                    // port flag
-                    if (arg.equals("-p")) {
-                        port = Integer.parseInt(argslist.get(++i));
-                    } 
-                    // ascii armor flag
-                    else if(arg.equals("-a")) {
-                        asciiArmor = true;
-                    } 
-                    // force drop packet flag
-                    else if(arg.equals("-d")) {
-                        dropRandomPackets = true;
-                        dropChance = Integer.parseInt(argslist.get(++i));
-                        if (dropChance < 1) {
-                            System.out.println("Minimum packet drop change is 1.");
-                            System.exit(1);
-                        }
-                    }
-                    // do not xor flag
-                    else if(arg.equals("-x")) {
-                        xor = false;
-                    }
-
+                    // switch
+                    System.out.println("Unknown switch: " + arg);
+                    System.exit(1);
                 } else {
-                    //not flag
+                    //not switch
                     if (firstFile) {
                         sourceFilename = arg;
                         firstFile = false;
