@@ -13,7 +13,7 @@ public class Hash {
      * @return the check-sum hash of the chunk
      */
     public static byte[] generateCheckSum(byte[] chunk) {
-        return generateCheckSum(chunk, Constants.CHECK_SUM_REPETITIONS);
+        return generateCheckSum(chunk, Constants.MAX_CHUNK_RETRY);
     }
 
     private static byte[] generateCheckSum(byte[] chunk, int repetitions) throws ArrayIndexOutOfBoundsException{

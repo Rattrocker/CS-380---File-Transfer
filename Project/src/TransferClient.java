@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Random;
 
 /**
  * Created by cthill on 11/16/16.
@@ -8,14 +9,16 @@ public class TransferClient {
     protected Socket socket;
     protected DataInputStream socketIn;
     protected DataOutputStream socketOut;
+    protected Random rand;
 
     public TransferClient(String address, int port) throws IOException {
         this.socket = new Socket(address, port);
         this.socketIn = new DataInputStream(socket.getInputStream());
         this.socketOut = new DataOutputStream(socket.getOutputStream());
+        this.rand = new Random();
     }
 
-    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor, boolean dropRandomPackets, int packetsToDrop) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean xor, boolean dropRandomPackets) throws FileNotFoundException, IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -37,8 +40,6 @@ public class TransferClient {
         socketOut.writeInt(chunks);
         socketOut.writeBoolean(xor);
         socketOut.writeBoolean(asciiArmor);
-//        socketOut.writeBoolean(dropRandomPackets);
-//        socketOut.writeInt(packetsToDrop);
 
         // read each chunk
         for (int i = 0; i < chunks; i++) {
@@ -63,6 +64,13 @@ public class TransferClient {
 
             int attempts = 0;
             while (true) {
+                if (dropRandomPackets) {
+                    // mess up the checksum with a 1/5 chance
+                    if (rand.nextInt(5) == 0) {
+                        checksum[0] = (byte) ~checksum[0];
+                    }
+                }
+
                 // send packet header to indicate incoming chunk
                 socketOut.writeByte(Constants.PH_CHUNK_DATA);
 
@@ -92,7 +100,9 @@ public class TransferClient {
                     return;
                 }
 
-                if (attempts >= Constants.CHECK_SUM_REPETITIONS) {
+                System.out.println("Chunk #" + i + " bad checksum. Retrying (" + attempts + "/" + Constants.MAX_CHUNK_RETRY + ")");
+
+                if (attempts >= Constants.MAX_CHUNK_RETRY) {
                     System.out.println("Error: exceeded max chunk retries");
                     disconnect();
                     return;
@@ -125,8 +135,6 @@ public class TransferClient {
 
     public void disconnect() throws IOException {
         socketOut.writeByte(Constants.PH_DISCONNECT);
-        socketIn.close();
-        socketOut.close();
         socket.close();
     }
 }
