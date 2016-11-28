@@ -38,6 +38,7 @@ public class ServerProtocol {
         this.clientSocket = clientSocket;
         socketIn = new DataInputStream(clientSocket.getInputStream());
         socketOut = new DataOutputStream(clientSocket.getOutputStream());
+        this.xorKey = xorKey;
 
         // process login file
         loginMap = new HashMap<String,String[]>();

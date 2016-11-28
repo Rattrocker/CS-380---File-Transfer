@@ -27,7 +27,6 @@ public class Transfer {
                 new FileInputStream(f).read(xorKey);
                 enableXOR = true;
             } catch (IOException e) {
-                e.printStackTrace();
                 System.out.println("Error reading file: " + e.getMessage());
                 System.exit(1);
             }
