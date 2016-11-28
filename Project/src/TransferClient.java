@@ -19,21 +19,21 @@ public class TransferClient {
         this.rand = new Random();
     }
 
-    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean enableXOR, byte[] xorKey, boolean dropRandomPackets, int dropChance) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, boolean asciiArmor, boolean enableXOR, byte[] xorKey, boolean dropRandomPackets, int dropChance) throws IOException {
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
 
         // calculate chunks
         long size = file.length();
-        int chunks = (int) size / Constants.CHUNK_SIZE;
+        int chunks = (int) size / Config.CHUNK_SIZE;
         // chunks are calculated using integer division (which floors), so we might need to add another chunk
-        if (size % Constants.CHUNK_SIZE != 0) {
+        if (size % Config.CHUNK_SIZE != 0) {
             chunks++;
         }
 
         // send packet header to indicate initiation of file transfer
-        socketOut.writeByte(Constants.PH_START_TRANSMIT);
+        socketOut.writeByte(Config.PH_START_TRANSMIT);
 
         // send filename, file size, chunk size, encoding, etc.
         socketOut.writeUTF(destFilename);
@@ -45,9 +45,9 @@ public class TransferClient {
         // read each chunk
         for (int i = 0; i < chunks; i++) {
             // calculate number of bytes to read from file
-            int readLength = Constants.CHUNK_SIZE;
+            int readLength = Config.CHUNK_SIZE;
             if (i == chunks - 1) {
-                readLength = (int) size % Constants.CHUNK_SIZE;
+                readLength = (int) size % Config.CHUNK_SIZE;
             }
 
             // allocate buffer for this chunk
@@ -65,7 +65,7 @@ public class TransferClient {
             int attempts = 0;
             while (true) {
                 // send packet header to indicate incoming chunk
-                socketOut.writeByte(Constants.PH_CHUNK_DATA);
+                socketOut.writeByte(Config.PH_CHUNK_DATA);
 
                 // send chunk number (i)
                 socketOut.writeInt(i);
@@ -88,18 +88,21 @@ public class TransferClient {
 
                 // check if chunk was received okay
                 byte incoming = socketIn.readByte();
-                if (incoming == Constants.PH_CHUNK_OK) {
+                if (incoming == Config.PH_CHUNK_OK) {
                     break;
                 }
 
-                System.out.println("Chunk #" + i + " bad checksum. Retrying (" + attempts + "/" + Constants.MAX_CHUNK_RETRY + ")");
+                System.out.println("Chunk #" + i + " bad checksum. Retrying (" + attempts + "/" + Config.MAX_CHUNK_RETRY + ")");
 
-                if (attempts >= Constants.MAX_CHUNK_RETRY) {
+                if (attempts >= Config.MAX_CHUNK_RETRY) {
                     System.out.println("Error: exceeded max chunk retries");
                     disconnect();
+                    fileIn.close();
                     return;
                 }
             }
+
+            fileIn.close();
         }
     }
 
@@ -109,14 +112,14 @@ public class TransferClient {
      */
     public boolean authenticate(String u, String p) throws IOException {
         // write packet header for auth
-        socketOut.writeByte(Constants.PH_AUTH);
+        socketOut.writeByte(Config.PH_AUTH);
         // write username
         socketOut.writeUTF(u);
         // write password
         socketOut.writeUTF(p);
 
         byte responseHeader = socketIn.readByte();
-        if (responseHeader == Constants.PH_AUTH) {
+        if (responseHeader == Config.PH_AUTH) {
             // server will return false for bad credentials, true for good
             return (socketIn.readBoolean());
         } else {
@@ -125,7 +128,7 @@ public class TransferClient {
     }
 
     public void disconnect() throws IOException {
-        socketOut.writeByte(Constants.PH_DISCONNECT);
+        socketOut.writeByte(Config.PH_DISCONNECT);
     }
 
     public void close() {

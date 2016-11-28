@@ -85,19 +85,19 @@ public class ServerProtocol {
                 // read packet header and run appropriate handler
                 byte incoming = socketIn.readByte();
                 switch (incoming) {
-                    case Constants.PH_AUTH:
+                    case Config.PH_AUTH:
                         handleAuth();
                         break;
 
-                    case Constants.PH_START_TRANSMIT:
+                    case Config.PH_START_TRANSMIT:
                         handleStartTransmit();
                         break;
 
-                    case Constants.PH_CHUNK_DATA:
+                    case Config.PH_CHUNK_DATA:
                         handleFileChunk();
                         break;
 
-                    case Constants.PH_DISCONNECT:
+                    case Config.PH_DISCONNECT:
                         disconnect();
                         break;
                 }
@@ -152,13 +152,13 @@ public class ServerProtocol {
         }
 
         // write auth header
-        socketOut.writeByte(Constants.PH_AUTH);
+        socketOut.writeByte(Config.PH_AUTH);
         socketOut.writeBoolean(authenticated);
 
         // check attempts
         if (!authenticated) {
             authAttempts++;
-            if (authAttempts >= Constants.MAX_AUTH_ATTEMPTS) {
+            if (authAttempts >= Config.MAX_AUTH_ATTEMPTS) {
                 disconnect();
             }
         }
@@ -226,13 +226,13 @@ public class ServerProtocol {
         // verify checksum
         byte[] chunkVerify = Hash.generateCheckSum(chunkData);
         if (chunkVerify.length != checksumData.length) {
-            socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+            socketOut.writeByte(Config.PH_CHUNK_ERROR);
             System.out.println("Chunk #" + chunkNum + " bad checksum.");
             return;
         }
         for (int i = 0; i < checksumData.length; i++) {
             if (chunkVerify[i] != checksumData[i]) {
-                socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+                socketOut.writeByte(Config.PH_CHUNK_ERROR);
                 System.out.println("Chunk #" + chunkNum + " bad checksum.");
                 return;
             }
@@ -244,7 +244,7 @@ public class ServerProtocol {
         chunkNum++;
         bytesRead += chunkData.length;
         // indicate good chunk
-        socketOut.writeByte(Constants.PH_CHUNK_OK);
+        socketOut.writeByte(Config.PH_CHUNK_OK);
 
         // check if we are done
         if (chunkNum == numChunks) {

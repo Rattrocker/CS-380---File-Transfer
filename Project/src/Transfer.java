@@ -1,8 +1,6 @@
 import java.io.*;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -26,7 +24,7 @@ public class Transfer {
             try {
                 String xorFileName = argslist.get(index + 1);
                 File f = new File(xorFileName);
-                xorKey = new byte[(int) Math.min(f.length(), Constants.CHUNK_SIZE)];
+                xorKey = new byte[(int) Math.min(f.length(), Config.CHUNK_SIZE)];
                 new FileInputStream(f).read(xorKey);
                 enableXOR = true;
 
@@ -155,7 +153,7 @@ public class Transfer {
 
                     // if max attempts, break out of loop. server will close connection
                     attempts++;
-                    if (attempts >= Constants.MAX_AUTH_ATTEMPTS) {
+                    if (attempts >= Config.MAX_AUTH_ATTEMPTS) {
                         System.exit(1);
                     }
                 }
