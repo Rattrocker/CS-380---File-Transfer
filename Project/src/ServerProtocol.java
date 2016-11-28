@@ -226,12 +226,13 @@ public class ServerProtocol {
         byte[] chunkVerify = Hash.generateCheckSum(chunkData);
         if (chunkVerify.length != checksumData.length) {
             socketOut.writeByte(Constants.PH_CHUNK_ERROR);
+            System.out.println("Chunk #" + chunkNum + " bad checksum.");
             return;
         }
         for (int i = 0; i < checksumData.length; i++) {
             if (chunkVerify[i] != checksumData[i]) {
                 socketOut.writeByte(Constants.PH_CHUNK_ERROR);
-                System.out.println("Chunk #" + i + " bad checksum.");
+                System.out.println("Chunk #" + chunkNum + " bad checksum.");
                 return;
             }
         }
