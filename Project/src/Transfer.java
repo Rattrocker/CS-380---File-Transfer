@@ -59,10 +59,11 @@ public class Transfer {
         }
 
         // drop random packets switch
+        boolean dropRandomPackets = false;
         int dropChance = -1;
         index = argslist.indexOf("-d");
         if (index != -1) {
-            asciiArmor = true;
+            dropRandomPackets = true;
             dropChance = Integer.parseInt(argslist.get(index + 1));
             if (dropChance < 1) {
                 System.out.println("Minimum packet drop change is 1.");
@@ -160,7 +161,7 @@ public class Transfer {
                 }
 
                 // transfer file
-                tc.transfer(sourceFilename, destFilename, asciiArmor, enableXOR, xorKey, dropChance);
+                tc.transfer(sourceFilename, destFilename, asciiArmor, enableXOR, xorKey, dropRandomPackets, dropChance);
 
                 // close connection
                 tc.disconnect();
