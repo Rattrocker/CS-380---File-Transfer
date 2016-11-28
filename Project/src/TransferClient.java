@@ -19,7 +19,15 @@ public class TransferClient {
         this.socketOut = new DataOutputStream(socket.getOutputStream());
     }
 
-    public void transfer(String sourceFilename, String destFilename) throws FileNotFoundException, IOException {
+    public void transfer(String sourceFilename, String destFilename, byte[] xorKeyFile, boolean enableXOR) throws FileNotFoundException, IOException {
+        //get xor key
+        byte[] xorKey = new byte[xorKeyFile.length];
+
+        for(int i=0; i < xorKeyFile.length; i++) {
+        	xorKey[i] = xorKeyFile[i];
+        } 
+
+
         // load file
         File file = new File(sourceFilename);
         BufferedInputStream fileIn = new BufferedInputStream(new FileInputStream(file));
@@ -36,7 +44,7 @@ public class TransferClient {
         socketOut.writeByte(Constants.PH_START_TRANSMIT);
 
         //TODO: parse command line switches for xor and asciiArmor
-        boolean xor = true;
+        boolean xor = enableXOR;
         boolean asciiArmor = true;
 
         // send filename, file size, chunk size, encoding, etc.
@@ -63,8 +71,7 @@ public class TransferClient {
             byte[] checksum = Hash.generateCheckSum(buffer);
 
             if (xor) {
-                //TODO: read in a key for xor ciphering instead of hard-coding one
-                buffer = XORCipher.xorCipher(buffer, "replace this key".getBytes());
+                buffer = XORCipher.xorCipher(buffer, xorKey);
             }
 
             int attempts = 0;
