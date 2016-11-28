@@ -102,11 +102,12 @@ public class Transfer {
                 // authenticate
                 Scanner in = new Scanner(System.in);
 
+                int attempts = 0;
                 while (true) {
                     // read username and pass
-                    System.out.print("Username: ");
+                    System.out.print(" Username: ");
                     String user = in.nextLine();
-                    System.out.print("Password: ");
+                    System.out.print(" Password: ");
                     String pass = new String(System.console().readPassword());
 
                     // try auth. If good, break out of loop
@@ -114,7 +115,13 @@ public class Transfer {
                         break;
                     }
 
-                    System.out.println("Bad login, try again.");
+                    System.out.println("Bad login.");
+
+                    // if max attempts, break out of loop. server will close connection
+                    attempts++;
+                    if (attempts >= Constants.MAX_AUTH_ATTEMPTS) {
+                        System.exit(1);
+                    }
                 }
 
                 // transfer file
