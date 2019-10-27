@@ -25,9 +25,9 @@ public class TransferServer {
 
         byte[] xorKey = new byte[xorKeyFile.length];
 
-        for(int i=0; i < xorKeyFile.length; i++) {
-          xorKey[i] = xorKeyFile[i];
-        } 
+        for (int i = 0; i < xorKeyFile.length; i++) {
+            xorKey[i] = xorKeyFile[i];
+        }
 
         while (true) {
             Socket clientSocket = serverSocket.accept(); // blocks until a client connects

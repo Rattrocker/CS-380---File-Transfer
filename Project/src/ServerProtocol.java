@@ -21,7 +21,7 @@ public class ServerProtocol {
 
     // config
     protected boolean xor;
-	protected byte[] xorKey;
+    protected byte[] xorKey;
     protected boolean asciiArmor;
 
     // client state
@@ -41,7 +41,7 @@ public class ServerProtocol {
         this.xorKey = xorKey;
 
         // process login file
-        loginMap = new HashMap<String,String[]>();
+        loginMap = new HashMap<String, String[]>();
         try {
             // load login file
             File loginFile = new File(loginFilename);
@@ -65,7 +65,7 @@ public class ServerProtocol {
                 }
 
                 // add entry to loginMap for lookup later
-                loginMap.put(split[0], new String[] { split[1], split[2] });
+                loginMap.put(split[0], new String[]{split[1], split[2]});
             }
         } catch (FileNotFoundException e) {
             System.out.println("file not found: " + loginFilename);
@@ -102,7 +102,7 @@ public class ServerProtocol {
                         break;
                 }
             }
-        }  catch (ProtocolException e) {
+        } catch (ProtocolException e) {
             // get error message
             String message = "Protocol error: " + e.getMessage();
             System.out.println(message);
@@ -211,7 +211,7 @@ public class ServerProtocol {
         int checksumLen = socketIn.readInt();
         byte[] checksumData = new byte[checksumLen];
         readN(socketIn, checksumData, checksumLen);
-        
+
 
         // check chunk number
         if (thisChunkNum != chunkNum) {
@@ -222,7 +222,7 @@ public class ServerProtocol {
         if (xor) {
             chunkData = XORCipher.xorCipher(chunkData, xorKey);
         }
-        
+
         // verify checksum
         byte[] chunkVerify = Hash.generateCheckSum(chunkData);
         if (chunkVerify.length != checksumData.length) {
@@ -254,7 +254,7 @@ public class ServerProtocol {
         }
     }
 
-    private static void readN(DataInputStream in, byte[] buffer, int n) throws IOException{
+    private static void readN(DataInputStream in, byte[] buffer, int n) throws IOException {
         int read = 0;
         while (read < n) {
             read += in.read(buffer, read, n - read);

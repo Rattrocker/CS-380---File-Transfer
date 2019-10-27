@@ -8,7 +8,7 @@ public class Base64 {
 
     /**
      * Base64 encoded version of a chunk
-     * 
+     *
      * @param chunk chunk to encode
      * @return encoded string
      */
@@ -17,7 +17,7 @@ public class Base64 {
         StringBuilder out = new StringBuilder();
 
         // encode 3 bytes at a time. Do all but last group
-        for (int i = 0; i < chunk.length - chunk.length % 3; i+=3) {
+        for (int i = 0; i < chunk.length - chunk.length % 3; i += 3) {
             // encode the 3 bytes as 4 base64 characters
             byte b1 = chunk[i];
             byte b2 = chunk[i + 1];
@@ -77,7 +77,7 @@ public class Base64 {
 
     /**
      * Base64 decoded version of chunk
-     * 
+     *
      * @param base64 string to decode
      * @return decoded chunk
      */
@@ -160,21 +160,21 @@ class Base64Alphabet {
         decode = new HashMap<>();
 
         //"A-Z"
-        for(int i = 0; i < 26; i++) {
-            encode.put(i, (char) (i+65));
-            decode.put((char) (i+65), i);
+        for (int i = 0; i < 26; i++) {
+            encode.put(i, (char) (i + 65));
+            decode.put((char) (i + 65), i);
         }
 
         //"a-z"
-        for(int i = 26; i < 52; i++) {
-            encode.put(i, (char) (i+71));
-            decode.put((char) (i+71), i);
+        for (int i = 26; i < 52; i++) {
+            encode.put(i, (char) (i + 71));
+            decode.put((char) (i + 71), i);
         }
 
         //"0-9"
-        for(int i = 52; i < 62; i++) {
-            encode.put(i, (char) (i-4));
-            decode.put((char) (i-4), i);
+        for (int i = 52; i < 62; i++) {
+            encode.put(i, (char) (i - 4));
+            decode.put((char) (i - 4), i);
         }
 
         //"+"
